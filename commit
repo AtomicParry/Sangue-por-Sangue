@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa Mystras</title>
+<style>
+:root{--bg:#0e0e10;--p:#1a1a1e;--p2:#242429;--r:#c0212b;--r2:#ff4a55;--t:#eee;--m:#999}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:var(--t);background:var(--p2);border:1px solid #3a3a42;border-radius:6px;padding:7px 10px}
+button{cursor:pointer;background:var(--r);border:0;font-weight:600}button.g{background:var(--p2);border:1px solid #3a3a42}
+textarea{width:100%;min-height:90px}input[type=checkbox]{width:auto}
+.box{max-width:340px;margin:12vh auto;background:var(--p);padding:28px;border-radius:12px;border-top:3px solid var(--r);display:grid;gap:10px}
+h1,h2,h3{margin:0}nav{display:flex;gap:6px;padding:10px 16px;background:var(--p);border-bottom:2px solid var(--r);align-items:center}
+nav button{background:none;border:0;color:var(--m)}nav button.on{color:#fff;border-bottom:2px solid var(--r2);border-radius:0}nav .sp{flex:1}
+main{padding:16px;max-width:1100px;margin:auto}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.card{background:var(--p);border:1px solid #333;border-radius:10px;overflow:hidden;text-align:center;border-bottom:3px solid var(--r)}
+.card.click{cursor:pointer}.card.click:hover{border-color:var(--r2)}
+.card .ph{height:170px;background:#000 center/cover}.card b{display:block;padding:6px}
+.bar{height:8px;background:#400;margin:0 8px 8px;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--r2)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;align-items:center}.pn{background:var(--p);padding:14px;border-radius:10px;margin:12px 0}
+.attrs{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.at{background:var(--p2);padding:8px;border-radius:8px;text-align:center}.at input{width:60px;text-align:center}.at small{display:block;color:var(--m)}
+.der{display:flex;gap:10px;flex-wrap:wrap}.der div{background:var(--p2);padding:8px 14px;border-radius:8px;text-align:center}.der b{font-size:20px;color:var(--r2);display:block}
+table{width:100%;border-collapse:collapse}td{padding:4px;border-bottom:1px solid #2a2a2a}
+.stage{position:relative;aspect-ratio:16/9;background:#111 center/cover;border-radius:10px;overflow:hidden;border:2px solid var(--r)}
+.stage .pl{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.stage .card{width:120px;background:#000b}.stage .ph{height:110px}.err{color:var(--r2)}.m{color:var(--m)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ====== 1) COLE AQUI A CONFIG DO SEU PROJETO FIREBASE ======
+const FIREBASE_CONFIG = {
+  apiKey: "", authDomain: "", projectId: "", appId: ""
+};
+// ====== 2) AJUSTE AQUI AS REGRAS DO SISTEMA (Mystras) ======
+const ATTRS = [["FOR","Força"],["DES","Destreza"],["CON","Constituição"],["INT","Inteligência"],["SAB","Sabedoria"],["CAR","Carisma"]];
+const SKILLS = [["Acrobacia","DES"],["Atletismo","FOR"],["Furtividade","DES"],["Percepção","SAB"],["Intuição","SAB"],["Investigação","INT"],["Conhecimento","INT"],["Persuasão","CAR"],["Intimidação","CAR"],["Enganação","CAR"],["Pilotagem","DES"],["Sobrevivência","SAB"],["Medicina","INT"],["Combate","FOR"]];
+const mod = v => Math.floor((v - 10) / 2);
+const calc = s => {                       // todas as fórmulas automáticas ficam aqui
+  const a = k => +s.attrs[k] || 10, n = +s.nivel || 1;
+  return {
+    pvMax: 10 + a("CON") + n * 2,
+    pe: 5 + a("INT") + n,
+    def: 10 + mod(a("DES")),
+    ini: mod(a("DES")),
+    prof: 2 + Math.floor(n / 4)
+  };
+};
+// ===========================================================
+const DOM = "@mesa.local", ADMIN = "admin" + DOM;
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth(), db = firebase.firestore();
+const $ = q => document.querySelector(q), app = $("#app");
+let me = null, isAdmin = false, tab = "fichas", subs = [], cache = {cards: [], session: {}, npcs: []}, openId = null;
+const slug = n => n.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const img = (f, max, q) => new Promise(r => { const i = new Image(); i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = i.width * k; c.height = i.height * k; c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL("image/jpeg", q)); }; i.src = URL.createObjectURL(f); });
+
+function loginView(msg = "") {
+  app.innerHTML = `<div class="box"><h2>⚔ Mesa Mystras</h2>
+  <input id="u" placeholder="Nome de usuário"><input id="p" type="password" placeholder="Senha (mín. 6)">
+  <button id="in">Entrar</button><button id="reg" class="g">Criar conta</button><div class="err">${msg}</div></div>`;
+  const go = async reg => {
+    const n = $("#u").value, p = $("#p").value, e = slug(n) + DOM;
+    if (!slug(n)) return loginView("Informe um nome.");
+    try {
+      if (reg) {
+        const c = await auth.createUserWithEmailAndPassword(e, p);
+        await db.doc("users/" + c.user.uid).set({name: n.trim()});
+        await db.doc("cards/" + c.user.uid).set({name: n.trim(), foto: "", pv: 12, pvMax: 12, owner: c.user.uid});
+      } else await auth.signInWithEmailAndPassword(e, p);
+    } catch (x) { loginView({"auth/email-already-in-use": "Nome já existe.", "auth/invalid-credential": "Nome ou senha incorretos.", "auth/weak-password": "Senha muito curta."}[x.code] || x.message); }
+  };
+  $("#in").onclick = () => go(false); $("#reg").onclick = () => go(true);
+}
+
+auth.onAuthStateChanged(u => {
+  subs.forEach(f => f()); subs = []; me = u;
+  if (!u) return loginView();
+  isAdmin = u.email === ADMIN; tab = "fichas"; openId = null;
+  subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId) render(); }));
+  subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; if (tab === "sessao") render(); }));
+  if (isAdmin) subs.push(db.collection("npcs").onSnapshot(s => { cache.npcs = s.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs") render(); }));
+  shell();
+});
+
+function shell() {
+  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}${isAdmin ? " (admin)" : ""}</span><button class="g" id="out">Sair</button></nav><main id="main"></main>`;
+  document.querySelectorAll("nav [data-t]").forEach(b => b.onclick = () => { tab = b.dataset.t; openId = null; render(); });
+  $("#out").onclick = () => auth.signOut(); render();
+}
+function render() {
+  if (!me || !$("#main")) return;
+  document.querySelectorAll("nav [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+  ({fichas: fichasView, sessao: sessaoView, npcs: npcsView})[tab]();
+}
+const cardHTML = (c, click) => `<div class="card ${click ? "click" : ""}" data-id="${c.id}"><div class="ph" style="background-image:url('${c.foto || ""}')"></div><b>${esc(c.name)}</b><div class="bar"><i style="width:${Math.max(0, Math.min(100, 100 * c.pv / (c.pvMax || 1)))}%"></i></div><small class="m">PV ${c.pv}/${c.pvMax}</small></div>`;
+
+/* ---------- FICHAS ---------- */
+function fichasView() {
+  if (openId) return sheetView(openId);
+  $("#main").innerHTML = `<h2>Fichas</h2><p class="m">Você só abre a sua própria ficha. ${isAdmin ? "Como admin, você abre todas." : ""}</p><div class="grid">${cache.cards.map(c => cardHTML(c, isAdmin || c.id === me.uid)).join("")}</div>`;
+  document.querySelectorAll(".card.click").forEach(el => el.onclick = () => { openId = el.dataset.id; render(); });
+}
+async function sheetView(id) {
+  const snap = await db.doc("fichas/" + id).get();
+  const card = cache.cards.find(c => c.id === id) || {name: ""};
+  const s = snap.exists ? snap.data() : {nome: card.name, nivel: 1, attrs: {}, sk: {}, pvAtual: null, poderes: "", inv: "", notas: ""};
+  s.attrs ||= {}; s.sk ||= {};
+  let foto = card.foto || "", t;
+  const save = () => { clearTimeout(t); t = setTimeout(async () => {
+    const d = calc(s); if (s.pvAtual == null || s.pvAtual > d.pvMax) s.pvAtual = d.pvMax;
+    await db.doc("fichas/" + id).set(s);
+    await db.doc("cards/" + id).set({name: s.nome || card.name, foto, pv: +s.pvAtual, pvMax: d.pvMax, owner: id});
+    $("#st").textContent = "✔ salvo"; }, 600); $("#st").textContent = "…"; };
+  const paint = () => {
+    const d = calc(s), pv = s.pvAtual ?? d.pvMax;
+    $("#der").innerHTML = [["PV máx", d.pvMax], ["Energia", d.pe], ["Defesa", d.def], ["Iniciativa", d.ini >= 0 ? "+" + d.ini : d.ini], ["Proficiência", "+" + d.prof]].map(x => `<div>${x[0]}<b>${x[1]}</b></div>`).join("");
+    document.querySelectorAll("[data-m]").forEach(e => { const m = mod(+s.attrs[e.dataset.m] || 10); e.textContent = m >= 0 ? "+" + m : m; });
+    document.querySelectorAll("[data-sk]").forEach(e => { const [n, a] = SKILLS[e.dataset.sk]; e.textContent = mod(+s.attrs[a] || 10) + (s.sk[n] ? d.prof : 0); });
+    $("#pv").value = pv;
+  };
+  $("#main").innerHTML = `<button class="g" id="bk">← Voltar</button> <span id="st" class="m"></span>
+  <div class="pn row"><div class="card" style="width:130px"><div class="ph" id="ph" style="background-image:url('${foto}')"></div></div>
+  <div><input type="file" id="fi" accept="image/*"><br><br><input id="nm" placeholder="Nome do personagem" value="${esc(s.nome)}"> Nível <input id="lv" type="number" min="1" style="width:70px" value="${s.nivel || 1}"> PV atual <input id="pv" type="number" style="width:80px"></div></div>
+  <div class="pn"><h3>Atributos</h3><div class="attrs">${ATTRS.map(([k, n]) => `<div class="at"><small>${n}</small><input type="number" data-a="${k}" value="${s.attrs[k] ?? 10}"><small>mod <b data-m="${k}"></b></small></div>`).join("")}</div></div>
+  <div class="pn"><div class="der" id="der"></div></div>
+  <div class="pn"><h3>Perícias</h3><table>${SKILLS.map(([n, a], i) => `<tr><td><input type="checkbox" data-t="${n}" ${s.sk[n] ? "checked" : ""}> ${n} <span class="m">(${a})</span></td><td><b data-sk="${i}"></b></td><td><button class="g" data-r="${i}">🎲 d20</button></td></tr>`).join("")}</table><p id="roll"></p></div>
+  <div class="pn"><h3>Poderes / Individualidade</h3><textarea id="po">${esc(s.poderes)}</textarea></div>
+  <div class="pn"><h3>Inventário</h3><textarea id="iv">${esc(s.inv)}</textarea></div>
+  <div class="pn"><h3>Anotações</h3><textarea id="nt">${esc(s.notas)}</textarea></div>`;
+  $("#bk").onclick = () => { openId = null; render(); };
+  $("#nm").oninput = e => { s.nome = e.target.value; save(); };
+  $("#lv").oninput = e => { s.nivel = +e.target.value; paint(); save(); };
+  $("#pv").oninput = e => { s.pvAtual = +e.target.value; save(); };
+  document.querySelectorAll("[data-a]").forEach(e => e.oninput = () => { s.attrs[e.dataset.a] = +e.value; paint(); save(); });
+  document.querySelectorAll("[data-t]").forEach(e => e.onchange = () => { s.sk[e.dataset.t] = e.checked; paint(); save(); });
+  document.querySelectorAll("[data-r]").forEach(e => e.onclick = () => { const i = e.dataset.r, b = +document.querySelector(`[data-sk="${i}"]`).textContent, r = 1 + Math.floor(Math.random() * 20); $("#roll").innerHTML = `${SKILLS[i][0]}: d20 (<b>${r}</b>) ${b >= 0 ? "+" : ""}${b} = <b class="err">${r + b}</b>`; });
+  [["po", "poderes"], ["iv", "inv"], ["nt", "notas"]].forEach(([i, k]) => $("#" + i).oninput = e => { s[k] = e.target.value; save(); });
+  $("#fi").onchange = async e => { foto = await img(e.target.files[0], 400, .7); $("#ph").style.backgroundImage = `url('${foto}')`; save(); };
+  paint();
+}
+
+/* ---------- SESSÃO ---------- */
+function sessaoView() {
+  const ss = cache.session, ids = ss.ids || [];
+  $("#main").innerHTML = `<h2>Sessão</h2>${isAdmin ? `<div class="pn"><b>Mapa:</b> <input type="file" id="mp" accept="image/*"> <button class="g" id="cm">Remover mapa</button>
+  <div class="row">${cache.cards.map(c => `<label><input type="checkbox" data-p="${c.id}" ${ids.includes(c.id) ? "checked" : ""}> ${esc(c.name)}</label>`).join("")}</div></div>` : ""}
+  <div class="stage" style="background-image:url('${ss.map || ""}')"><div class="pl">${cache.cards.filter(c => ids.includes(c.id)).map(c => cardHTML(c, false)).join("")}</div></div>`;
+  if (!isAdmin) return;
+  $("#mp").onchange = async e => db.doc("session/current").set({map: await img(e.target.files[0], 1400, .7)}, {merge: true});
+  $("#cm").onclick = () => db.doc("session/current").set({map: ""}, {merge: true});
+  document.querySelectorAll("[data-p]").forEach(e => e.onchange = () => {
+    const n = [...document.querySelectorAll("[data-p]")].filter(x => x.checked).map(x => x.dataset.p);
+    db.doc("session/current").set({ids: n}, {merge: true}); });
+}
+
+/* ---------- NPCs (admin) ---------- */
+function npcsView() {
+  $("#main").innerHTML = `<h2>NPCs <span class="m">(privado)</span></h2><button id="nn">+ Novo NPC</button>
+  ${cache.npcs.map(n => `<div class="pn" data-n="${n.id}"><div class="row"><input data-f="nome" value="${esc(n.nome)}" placeholder="Nome"> PV <input data-f="pv" type="number" style="width:80px" value="${n.pv ?? 10}"><button class="g" data-d="${n.id}">Excluir</button></div><textarea data-f="notas" placeholder="Anotações, poderes, ataques...">${esc(n.notas)}</textarea></div>`).join("")}`;
+  $("#nn").onclick = () => db.collection("npcs").add({nome: "Novo NPC", pv: 10, notas: ""});
+  document.querySelectorAll("[data-f]").forEach(e => e.onchange = () => db.doc("npcs/" + e.closest("[data-n]").dataset.n).update({[e.dataset.f]: e.type === "number" ? +e.value : e.value}));
+  document.querySelectorAll("[data-d]").forEach(e => e.onclick = () => confirm("Excluir?") && db.doc("npcs/" + e.dataset.d).delete());
+}
+</script>
+</body>
+</html>
