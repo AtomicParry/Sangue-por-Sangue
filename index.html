@@ -42,6 +42,14 @@ main{padding:14px;max-width:1150px;margin:auto}.grid{display:grid;grid-template-
 .stage .card{width:120px;background:#000b}.stage .ph{height:110px}
 .err{color:var(--r2)}.m{color:var(--m)}#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--r);padding:10px 18px;border-radius:10px;display:none;z-index:9;font-weight:700}
 @media(max-width:760px){.top{grid-template-columns:1fr}.attrs{grid-template-columns:repeat(4,1fr)}.prof{grid-template-columns:repeat(2,1fr)}.ed{grid-template-columns:1fr 1fr}}
+.at{padding:12px 6px 8px;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 30%,#0a0a0a),#0c0c0c 75%);border:1px solid color-mix(in srgb,var(--c) 55%,#000);box-shadow:0 0 14px color-mix(in srgb,var(--c) 22%,transparent)}
+.at em{display:block;font-style:normal;font-weight:800;letter-spacing:2px;color:var(--c);font-size:13px}
+.at input{width:100%;background:none;border:0;font-size:36px;font-weight:800;color:#fff;text-align:center;padding:0;text-shadow:0 0 10px var(--c)}.at small{font-size:10px;color:#ccc}
+textarea{resize:none;overflow:hidden;min-height:60px}.pw{border-left:3px solid var(--r);padding-left:10px;margin:10px 0}
+.sk .nm{width:100%;text-align:center;font-weight:700;background:none;border:0;border-bottom:1px solid #444;border-radius:0}.sk .ab{display:flex;gap:4px;margin:5px 0}.sk .ab select{flex:1;padding:3px;font-size:12px}
+.bp .ar{color:#4aa3ff;font-size:10px;margin-top:4px}.bp .ar input{width:34px;font-size:13px;color:#4aa3ff;border:1px solid #1e4a80;border-radius:6px;padding:1px}
+.chip{background:var(--p2);border:1px solid #333}.chip.on{background:var(--r)}
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wg label{display:block;font-size:11px;color:#b6f;text-transform:uppercase;margin-bottom:3px}.wg input:not([type=checkbox]),.wg select{width:100%}
 </style>
 </head>
 <body>
@@ -59,8 +67,13 @@ const FIREBASE_CONFIG = {
 /* ===== REGRAS DO SISTEMA (Mythras) — ajuste aqui ===== */
 const ATTRS = [["FOR","Força","#ff3b3b"],["CON","Constituição","#ff9f2e"],["TAM","Tamanho","#7ee8d0"],["DES","Destreza","#8fe34a"],["INT","Inteligência","#3aa0ff"],["POD","Poder","#b43cff"],["CAR","Carisma","#ff3c9a"]];
 const PRESETS = {"Padrão":[14,13,12,11,11,10,9],"Balanceada":[12,12,12,12,11,11,10],"Especializada":[16,15,13,10,10,8,8]};
-const BASIC = [["Atletismo","FOR","DES"],["Condução","DES","POD"],["Desarmado","FOR","DES"],["Dissimulação","INT","CAR"],["Estilo de Combate","FOR","DES"],["Evasão","DES","DES"],["Vontade","POD","POD"],["Furtividade","DES","INT"],["Influência","CAR","CAR"],["Intuição","INT","POD"],["Língua Nativa","INT","CAR"],["Malandragem","POD","CAR"],["Musculatura","FOR","TAM"],["Ocultação","DES","POD"],["Percepção","INT","POD"],["Tolerância","CON","CON"]];
+const BASIC = [["Atletismo","FOR","DES"],["Condução","DES","POD"],["Desarmado","FOR","DES"],["Dissimulação","INT","CAR"],["Estilo de Combate","FOR","DES"],["Evasão","DES","DES"],["Vontade","POD","POD"],["Furtividade","DES","INT"],["Influência","CAR","CAR"],["Intuição","INT","POD"],["Língua Nativa","INT","CAR"],["Malandragem","POD","CAR"],["Musculatura","FOR","TAM"],["Ocultação","DES","POD"],["Percepção","INT","POD"],["Tolerância","CON","CON"],["Pesquisa","INT","INT"],["Primeiros Socorros","INT","DES"]];
 const RESIST = ["Evasão","Vontade","Musculatura","Tolerância"];
+const CLS = ["Miserável","Empobrecido","Classe Trabalhadora","Classe Média","Classe Alta","Burguesia"];
+const CULT = {
+ Urbano:{pro:[["Arte","POD","CAR"],["Conhecimento","INT","INT",1],["Cultura","INT","INT"],["Idioma","INT","CAR",1],["Escrita","INT","INT"],["Performance","CAR","DES"]],rest:["Dissimulação","Influência","Pesquisa","Vontade","Condução","Percepção","Malandragem"]},
+ Rural:{pro:[["Navegação","INT","POD"],["Conhecimento Animal","INT","INT"],["Sobrevivência","INT","CON"],["Montaria","DES","POD"],["Rastreamento","INT","CON"],["Etiqueta","CAR","INT"]],rest:["Musculatura","Tolerância","Percepção","Desarmado","Condução","Influência","Malandragem","Vontade"]},
+ Arcaico:{pro:[["Navegação","INT","POD"],["Conhecimento Arcaico","INT","INT"],["Montaria","DES","POD"],["Ofício","DES","INT"],["Condução","DES","POD"],["Sobrevivência","INT","CON"]],rest:["Atletismo","Tolerância","Percepção","Intuição","Musculatura","Primeiros Socorros","Furtividade","Desarmado"]}};
 const FADIGA = ["Descansado","Ofegante","Cansado","Esgotado","Exausto","Debilitado","Incapacitado","Morto"];
 const PARTS = [["cab","Cabeça",[1,2,3,4,5,6,7,8]],["be","Braço Esq.",[1,1,2,3,4,5,6,7]],["pei","Peito",[3,4,5,6,7,8,9,10]],["bd","Braço Dir.",[1,1,2,3,4,5,6,7]],["pe","Perna Esq.",[1,2,3,4,5,6,7,8]],["abd","Abdômen",[2,3,4,5,6,7,8,9]],["pd","Perna Dir.",[1,2,3,4,5,6,7,8]]];
 const hpMax = (p, sum) => { const c = Math.max(0, Math.floor((sum - 1) / 5)); return c > 7 ? p[7] + c - 7 : p[c]; };
@@ -82,6 +95,7 @@ const toast = t => { const e = $("#toast"); e.textContent = t; e.style.display =
 const img = (f, max, q) => new Promise(r => { const i = new Image(); i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = i.width * k; c.height = i.height * k; c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL("image/jpeg", q)); }; i.src = URL.createObjectURL(f); });
 const d100 = (n, p) => { const r = 1 + Math.floor(Math.random() * 100), c = Math.ceil(p / 10); toast(`${n}: ${r} vs ${p}% → ${r <= c ? "SUCESSO CRÍTICO" : r >= 99 ? "FALHA CRÍTICA" : r <= p ? "Sucesso" : "Falha"}`); };
 
+const grow = e => { e.style.height = "auto"; e.style.height = e.scrollHeight + "px"; };
 function loginView(msg = "") {
   app.innerHTML = `<div class="box"><h2>⚔ Mesa Mythras</h2><input id="u" placeholder="Nome de usuário"><input id="p" type="password" placeholder="Senha (mín. 6)">
   <button id="in">Entrar</button><button id="reg" class="g">Criar conta</button><div class="err">${msg}</div></div>`;
@@ -101,7 +115,7 @@ auth.onAuthStateChanged(u => {
   subs.push(db.doc("masters/" + u.uid).onSnapshot(s => { isAdmin = s.exists; npcSub?.(); npcSub = null;
     if (isAdmin) npcSub = db.collection("npcs").onSnapshot(n => { cache.npcs = n.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs") render(); });
     else if (tab === "npcs") tab = "fichas";
-    openId = null; shell(); }));
+    openId = null; shell(); }, e => toast("Erro modo mestre: " + e.code)));
   shell();
 });
 function shell() {
@@ -111,7 +125,7 @@ function shell() {
   $("#ms").onclick = async () => { try {
     if (isAdmin) await db.doc("masters/" + me.uid).delete();
     else { const k = prompt("Senha do mestre:"); if (k) await db.doc("masters/" + me.uid).set({k}); }
-  } catch (e) { toast("Senha incorreta."); } };
+  } catch (e) { toast("Erro: " + (e.code || e.message)); } };
   render();
 }
 function render() { if (!me || !$("#main")) return;
@@ -128,7 +142,7 @@ function fichasView() {
 async function sheetView(id) {
   const snap = await db.doc("fichas/" + id).get(), card = cache.cards.find(c => c.id === id) || {name: ""};
   const s = snap.exists ? snap.data() : {};
-  s.nome ??= card.name; s.att ??= {}; s.bn ??= {}; s.hp ??= {}; s.cs ??= []; s.es ??= []; s.fad ??= 0; s.ppA ??= null;
+  s.nome ??= card.name; s.att ??= {}; s.bn ??= {}; s.hp ??= {}; s.cs ??= []; s.es ??= []; s.fad ??= 0; s.ppA ??= null; s.ps ??= []; s.arm ??= {}; s.nivel ??= 1; s.pod ??= s.poderes ? [{n: "Poderes", d: s.poderes}] : [];
   let foto = card.foto || "", sub = "Geral", t;
   const save = () => { $("#st").textContent = "…"; clearTimeout(t); t = setTimeout(async () => {
     const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
@@ -138,19 +152,19 @@ async function sheetView(id) {
   const pct = (a, b, x) => (+s.att[a] || 0) + (+s.att[b] || 0) + (+x || 0);
   const tile = (n, a, b, path, inp = true) => `<div class="sk"><b>${n}</b><small>${a} + ${b}</small><div class="pc"><button data-roll="${esc(n)}">🎲</button><span data-p="${path}" data-a="${a}" data-b="${b}"></span></div>${inp ? `<span class="m">bônus</span> <input type="number" data-i="${path}" value="${get(s, path) ?? 0}">` : ""}</div>`;
   const sel = (v, path) => `<select data-i="${path}">${ATTRS.map(a => `<option ${a[0] == v ? "selected" : ""}>${a[0]}</option>`).join("")}</select>`;
-  const editor = (k, ph) => `${s[k].map((x, i) => `<div class="ed"><input data-i="${k}.${i}.n" value="${esc(x.n)}" placeholder="${ph}">${sel(x.a, k + "." + i + ".a")}${sel(x.b, k + "." + i + ".b")}<input type="number" data-i="${k}.${i}.x" value="${x.x || 0}"><span><b data-p="${k}.${i}.x" data-a="${x.a}" data-b="${x.b}"></b> <button data-roll="${esc(x.n)}">🎲</button> <button class="g" data-del="${k}.${i}">✕</button></span></div>`).join("")}<button class="g" data-add="${k}">+ Adicionar</button>`;
+  const editor = (k, ph) => `<div class="skg">${s[k].map((x, i) => `<div class="sk"><input class="nm" data-i="${k}.${i}.n" value="${esc(x.n)}" placeholder="${ph}"><div class="ab">${sel(x.a, k + "." + i + ".a")}${sel(x.b, k + "." + i + ".b")}</div><div class="pc"><button data-roll="${esc(x.n)}">🎲</button><span data-p="${k}.${i}.x" data-a="${x.a}" data-b="${x.b}"></span></div><span class="m">bônus</span> <input type="number" data-i="${k}.${i}.x" value="${x.x || 0}"> <button class="g" data-del="${k}.${i}">✕</button></div>`).join("")}</div><div class="row"><button class="g" data-add="${k}">+ Adicionar</button></div>`;
   const prof = [["genero", "Gênero"], ["idade", "Idade"], ["terra", "Terra natal"], ["cultura", "Cultura"], ["altura", "Altura"], ["peso", "Peso"], ["classe", "Classe social"], ["prof", "Profissão"]];
   const pages = {
     Geral: () => `<div class="pn"><h3>Atributos</h3><div class="row"><select id="pre"><option value="">-- Distribuição --</option>${Object.entries(PRESETS).map(([k, v]) => `<option value="${k}">${k} (${v.join(", ")})</option>`).join("")}</select><span class="m">preenche em ordem; ajuste depois</span></div>
-      <div class="attrs">${ATTRS.map(([k, n, c]) => `<div class="at" style="--c:${c}"><b data-o="att.${k}"></b><br><input type="number" data-i="att.${k}" value="${s.att[k] ?? 10}"><small>${n}</small></div>`).join("")}</div></div>
+      <div class="attrs">${ATTRS.map(([k, n, c]) => `<div class="at" style="--c:${c}"><em>${k}</em><input type="number" data-i="att.${k}" value="${s.att[k] ?? 10}"><small>${n}</small></div>`).join("")}</div></div>
       <div class="pn"><h3>Derivados</h3><div class="der"><div>Pts. de Ação<b data-o="pa"></b></div><div>Mod. de Dano<b data-o="dano"></b></div><div>Mod. de XP<b data-o="xp"></b></div><div>Taxa de Cura<b data-o="cura"></b></div><div>Iniciativa<b data-o="ini"></b></div><div>Pts. de Sorte<b data-o="sorte"></b></div><div>Pts. de Poder<b data-o="pp"></b></div></div></div>`,
-    "Perícias": () => `<div class="pn"><h3>Perícias básicas</h3><div class="skg">${BASIC.map(([n, a, b]) => tile(n, a, b, "bn." + n)).join("")}</div></div><div class="pn"><h3>Perícias profissionais / outras</h3>${editor("cs", "Nome da perícia")}</div>`,
+    "Perícias": () => `<div class="pn"><h3>Perícias básicas</h3><div class="skg">${BASIC.map(([n, a, b]) => tile(n, a, b, "bn." + n)).join("")}</div></div><div class="pn"><h3>Perícias profissionais / outras</h3>${editor("cs", "Nome da perícia")}</div><div class="pn"><h3>Paixões</h3>${editor("ps", "Paixão")}</div>`,
     Combate: () => `<div class="pn"><h3>Estilos de combate</h3>${editor("es", "Nome do estilo")}</div>
-      <div class="pn"><h3>Localização de acerto</h3><div class="body">${PARTS.map(([k, n]) => k == "cab" ? `<span></span><div class="bp" data-bp="${k}">${n}<br><input type="number" data-i="hp.${k}"> / <span data-o="hm.${k}"></span></div><span></span>` : `<div class="bp" data-bp="${k}">${n}<br><input type="number" data-i="hp.${k}"> / <span data-o="hm.${k}"></span></div>`).join("")}</div>
+      <div class="pn"><h3>Localização de acerto</h3><div class="body">${PARTS.map(([k, n]) => `${k == "cab" ? "<span></span>" : ""}<div class="bp" data-bp="${k}">${n}<br><input type="number" data-i="hp.${k}"> / <span data-o="hm.${k}"></span><div class="ar">🛡 Armadura <input type="number" data-i="arm.${k}" value="${s.arm[k] ?? 0}"></div></div>${k == "cab" ? "<span></span>" : ""}`).join("")}</div>
       <p class="m">Vida por parte do corpo calculada por CON + TAM.</p><button class="g" id="rl">🎲 Rolar local de acerto</button></div>
       <div class="pn"><h3>Resistências</h3><div class="skg">${RESIST.map(n => { const b = BASIC.find(x => x[0] == n); return tile(n, b[1], b[2], "bn." + n, false); }).join("")}</div></div>
       <div class="pn"><h3>Condições e ferimentos</h3><textarea data-i="cond">${esc(s.cond)}</textarea></div>`,
-    Notas: () => `<div class="pn"><h3>Poderes / Habilidades</h3><textarea data-i="poderes">${esc(s.poderes)}</textarea></div><div class="pn"><h3>Inventário</h3><textarea data-i="inv">${esc(s.inv)}</textarea></div><div class="pn"><h3>Anotações</h3><textarea data-i="notas">${esc(s.notas)}</textarea></div>`
+    Notas: () => `<div class="pn"><h3>Poderes / Habilidades</h3>${s.pod.map((x, i) => `<div class="pw"><div class="row"><input class="nm" data-i="pod.${i}.n" value="${esc(x.n)}" placeholder="Nome do poder" style="flex:1"><button class="g" data-del="pod.${i}">✕</button></div><textarea data-i="pod.${i}.d" placeholder="Descrição">${esc(x.d)}</textarea></div>`).join("")}<button class="g" data-add="pod">+ Novo poder</button></div><div class="pn"><h3>Inventário</h3><textarea data-i="inv">${esc(s.inv)}</textarea></div><div class="pn"><h3>Anotações</h3><textarea data-i="notas">${esc(s.notas)}</textarea></div>`
   };
   const paint = () => { const o = calc(s);
     document.querySelectorAll("[data-p]").forEach(e => e.textContent = pct(e.dataset.a, e.dataset.b, get(s, e.dataset.p)) + "%");
@@ -159,30 +173,83 @@ async function sheetView(id) {
     const f = $("#fad"); if (f) f.value = s.fad;
   };
   const draw = () => {
+    if (!s.criada && id === me.uid) return wizard();
     s.att = Object.fromEntries(ATTRS.map(([k]) => [k, s.att[k] ?? 10]));
     const o = calc(s);
     $("#main").innerHTML = `<button class="g" id="bk">← Voltar</button> <span id="st" class="m"></span>
     <div class="top"><div class="ph" id="ph" style="background-image:url('${foto}')" title="Clique para trocar a foto"></div>
     <div class="pn" style="margin:0"><input data-i="nome" value="${esc(s.nome)}" style="font-size:22px;font-weight:700;width:100%;background:none;border:0"><div class="prof">${prof.map(([k, n]) => `<div><label>${n}</label><input data-i="${k}" value="${esc(s[k])}"></div>`).join("")}</div>
     <div class="row"><label class="m">NÍVEL DE FADIGA</label><select id="fad" data-i="fad">${FADIGA.map((f, i) => `<option value="${i}">${f}</option>`).join("")}</select></div></div>
-    <div class="side"><div class="st" style="color:#f6a">❤ <span data-o="xp"></span><small>Mod XP</small></div><div class="st" style="color:#b4f"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#6e4"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#4af"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
+    <div class="side"><div class="st" style="color:#fc3"><input type="number" data-i="nivel" value="${s.nivel ?? 1}"><small>Nível</small></div><div class="st" style="color:#b4f"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#6e4"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#4af"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
     <input type="file" id="fi" accept="image/*" hidden>
     <div class="sub">${Object.keys(pages).map(p => `<button class="${p == sub ? "on" : ""}" data-s="${p}">${p}</button>`).join("")}</div><div id="pg">${pages[sub]()}</div>`;
-    bind(); paint(); };
+    bind(); paint(); document.querySelectorAll("textarea").forEach(grow); };
   const bind = () => {
     $("#bk").onclick = () => { openId = null; render(); };
     document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { sub = b.dataset.s; draw(); });
     $("#ph").onclick = () => $("#fi").click();
     $("#fi").onchange = async e => { foto = await img(e.target.files[0], 400, .7); $("#ph").style.backgroundImage = `url('${foto}')`; save(); };
     document.querySelectorAll("[data-i]").forEach(e => e.oninput = () => { let v = e.type == "number" ? (e.value === "" ? null : +e.value) : e.value; if (e.dataset.i == "fad") v = +v; setp(s, e.dataset.i, v);
-      if (e.dataset.i.match(/^(cs|es)\.\d+\.[ab]$/)) { const [k, i] = e.dataset.i.split("."); e.closest(".ed").querySelector("[data-p]").dataset[e.dataset.i.slice(-1)] = v; }
+      if (e.dataset.i.match(/^(cs|es|ps)\.\d+\.[ab]$/)) e.closest(".sk").querySelector("[data-p]").dataset[e.dataset.i.slice(-1)] = v;
+      if (e.tagName == "TEXTAREA") grow(e);
       paint(); save(); });
-    document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => { s[b.dataset.add].push({n: "", a: "FOR", b: "DES", x: 0}); draw(); save(); });
+    document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => { s[b.dataset.add].push(b.dataset.add == "pod" ? {n: "", d: ""} : {n: "", a: b.dataset.add == "ps" ? "POD" : "FOR", b: b.dataset.add == "ps" ? "CAR" : "DES", x: 0}); draw(); save(); });
     document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { const [k, i] = b.dataset.del.split("."); s[k].splice(i, 1); draw(); save(); });
-    document.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => d100(b.dataset.roll, parseInt(b.parentElement.querySelector("[data-p]").textContent)));
+    document.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => d100(b.closest(".sk")?.querySelector(".nm")?.value || b.dataset.roll, parseInt(b.parentElement.querySelector("[data-p]").textContent)));
     const pre = $("#pre"); if (pre) pre.onchange = () => { const v = PRESETS[pre.value]; if (!v) return; ATTRS.forEach(([k], i) => s.att[k] = v[i]); draw(); save(); };
     const rl = $("#rl"); if (rl) rl.onclick = () => { const r = 1 + Math.floor(Math.random() * 20), p = r <= 3 ? "Perna Dir." : r <= 6 ? "Perna Esq." : r <= 9 ? "Abdômen" : r <= 12 ? "Peito" : r <= 15 ? "Braço Dir." : r <= 18 ? "Braço Esq." : "Cabeça"; toast(`d20 = ${r} → ${p}`); };
   };
+
+  let W = null;
+  const wizard = () => {
+    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: ""};
+    const cc = () => CULT[W.cult], pool = () => W.free ? null : PRESETS[W.pk], sum = o => Object.values(o).reduce((a, b) => a + (+b || 0), 0);
+    const sk = () => { const c = cc(); return c ? [...W.pro.map(n => { const p = c.pro.find(x => x[0] == n); return {k: n, n: p[3] ? `${n} (${W.spec[n] || "?"})` : n, a: p[1], b: p[2]}; }), ...c.rest.map(n => { const b = BASIC.find(x => x[0] == n); return {k: n, n, a: b[1], b: b[2]}; })] : []; };
+    const remP = () => { const r = [...pool()]; Object.values(W.att).filter(v => v).map(Number).forEach(v => { const i = r.indexOf(v); i >= 0 ? r.splice(i, 1) : r.push("!"); }); return r; };
+    const check = () => { const st = W.step, a = W.att;
+      if (st == 0) return W.nome && W.idade && W.classe ? "" : "Preencha nome, idade e classe social.";
+      if (st == 1) return W.free ? (sum(a) == 80 && ATTRS.every(([k]) => a[k] >= 3 && a[k] <= 18) && a.INT >= 8 && a.TAM >= 8 ? "" : "Some exatamente 80 pontos (3 a 18 cada; INT e TAM mín. 8).") : (pool() && ATTRS.every(([k]) => a[k]) && !remP().length ? "" : "Distribua todos os valores do pacote.");
+      if (st == 2) return !W.cult ? "Escolha a cultura." : W.pro.length < 3 ? "Marque 3 perícias profissionais." : cc().pro.some(p => p[3] && W.pro.includes(p[0]) && !(W.spec[p[0]] || "").trim()) ? "Diga qual Conhecimento/Idioma." : sk().some(x => (W.cp[x.k] || 0) > 15) ? "Máximo 15 por perícia." : sum(W.cp) != 100 ? "Distribua exatamente 100 pontos." : "";
+      if (st == 3) return W.prof?.trim() && W.estilo?.trim() ? "" : "Preencha profissão e estilo de combate.";
+      if (st == 4) return sum(W.p2) == 200 ? "" : "Distribua exatamente 200 pontos.";
+      return W.pass.every(x => x.trim()) ? "" : "Escreva as 3 paixões."; };
+    const show = () => { const st = W.step; let h = "";
+      if (st == 0) h = `<div class="wg"><div><label>Nome</label><input data-w="nome" value="${esc(W.nome)}"></div><div><label>Idade</label><input type="number" data-w="idade" value="${W.idade ?? ""}"></div><div><label>Gênero</label><select data-w="genero">${["Masculino", "Feminino", "Outro"].map(g => `<option ${g == W.genero ? "selected" : ""}>${g}</option>`).join("")}</select></div><div><label>Peso (kg)</label><input data-w="peso" value="${esc(W.peso)}" placeholder="Ex: 75kg"></div><div style="grid-column:1/-1"><label>Terra natal</label><input data-w="terra" value="${esc(W.terra)}" placeholder="Ex: Gemini City, Japão..."></div></div><h3>Classe social</h3><div class="row">${CLS.map(x => `<button class="chip ${x == W.classe ? "on" : ""}" data-cl="${x}">${x}</button>`).join("")}</div>`;
+      if (st == 1) h = `<label class="row"><input type="checkbox" id="fl" ${W.free ? "checked" : ""}> Distribuição livre (80 pontos; mín. 8 INT e TAM)</label>${W.free ? "" : `<div class="row"><b>Pacote base</b><select id="pk"><option value="">-- Escolha --</option>${Object.entries(PRESETS).map(([k, v]) => `<option value="${k}" ${k == W.pk ? "selected" : ""}>${k} (${v.join(", ")})</option>`).join("")}</select><button class="g" id="rnd">🎲 Aleatório</button></div>`}<p id="rem"></p><div class="wg">${ATTRS.map(([k, n]) => `<div><label>${n} (${k})</label>${W.free ? `<input type="number" min="3" max="18" data-wa="${k}" value="${W.att[k] ?? ""}">` : `<select data-wa="${k}"><option value="">—</option>${[...new Set(pool() || [])].map(v => `<option ${W.att[k] == v ? "selected" : ""}>${v}</option>`).join("")}</select>`}</div>`).join("")}</div>`;
+      if (st == 2) { const c = cc(); h = `<div class="row">${Object.keys(CULT).map(x => `<button class="chip ${x == W.cult ? "on" : ""}" data-cu="${x}">${x}</button>`).join("")}</div>` + (c ? `<h3>Perícias profissionais (marque 3)</h3><div class="wg">${c.pro.map(p => `<div><label><input type="checkbox" data-pr="${p[0]}" ${W.pro.includes(p[0]) ? "checked" : ""} ${!W.pro.includes(p[0]) && W.pro.length >= 3 ? "disabled" : ""}> ${p[0]}</label>${p[3] && W.pro.includes(p[0]) ? `<input data-sp="${p[0]}" value="${esc(W.spec[p[0]])}" placeholder="Qual?">` : ""}</div>`).join("")}</div>` + (W.pro.length == 3 ? `<h3>Distribua 100 pontos (0 a 15 cada)</h3><p id="rem"></p><div class="wg">${sk().map(x => `<div><label>${esc(x.n)} (${x.a}+${x.b})</label><input type="number" min="0" max="15" data-cp="${x.k}" value="${W.cp[x.k] ?? 0}"></div>`).join("")}</div>` : "") : ""); }
+      if (st == 3) h = `<div class="wg"><div><label>Profissão</label><input data-w="prof" value="${esc(W.prof)}"></div><div><label>Estilo de combate (perícia FOR+DES)</label><input data-w="estilo" value="${esc(W.estilo)}" placeholder="Ex: Brigão de Bar"></div></div>`;
+      if (st == 4) h = `<h3>Distribua 200 pontos entre as perícias do seu caminho</h3><p id="rem"></p><div class="wg">${[...sk(), {k: "__e", n: W.estilo + " (estilo)", a: "FOR", b: "DES"}].map(x => `<div><label>${esc(x.n)} <span data-pp="${x.k}"></span></label><input type="number" min="0" data-p2="${x.k}" value="${W.p2[x.k] ?? 0}"></div>`).join("")}</div>`;
+      if (st == 5) h = `<p class="m">Cada paixão vira uma perícia (POD+CAR) com bônus.</p>${[40, 30, 20].map((b, i) => `<div class="row"><b>+${b}</b><input data-ps="${i}" value="${esc(W.pass[i])}" placeholder="Ex: Lealdade à família" style="flex:1"></div>`).join("")}`;
+      $("#main").innerHTML = `<h2>VAMOS CRIAR SEU PERSONAGEM?</h2><p class="m">${["1. Dados", "2. Características", "3. Cultura", "4. Profissão", "5. Perícias", "6. Paixões"].map((n, i) => i == st ? `<b style="color:#c8f">${n}</b>` : n).join(" › ")}</p><div class="pn">${h}</div><div class="err" id="wm"></div><div class="row"><button class="g" id="wb" ${st ? "" : "disabled"}>← Voltar</button><button id="wn">${st == 5 ? "Concluir" : "Avançar →"}</button></div>`;
+      const upd = () => { const r = $("#rem"); if (!r) return;
+        if (st == 1) r.innerHTML = W.free ? `Restante: <b>${80 - sum(W.att)}</b>` : pool() ? `Valores restantes: <b>${remP().join(", ") || "Distribuídos!"}</b>` : "Escolha um pacote.";
+        if (st == 2) r.innerHTML = `Restante: <b>${100 - sum(W.cp)}</b>`;
+        if (st == 4) { r.innerHTML = `Restante: <b>${200 - sum(W.p2)}</b>`; document.querySelectorAll("[data-pp]").forEach(e => { const x = [...sk(), {k: "__e", a: "FOR", b: "DES"}].find(y => y.k == e.dataset.pp); e.textContent = ((+W.att[x.a] || 0) + (+W.att[x.b] || 0) + (W.p2[x.k] || 0) + (W.cp[x.k] || 0)) + "%"; }); } };
+      const on = (q, f) => document.querySelectorAll(q).forEach(f);
+      on("[data-w]", e => e.oninput = () => W[e.dataset.w] = e.value);
+      on("[data-cl]", b => b.onclick = () => { W.classe = b.dataset.cl; show(); });
+      on("[data-wa]", e => e.oninput = () => { W.att[e.dataset.wa] = e.value === "" ? "" : +e.value; upd(); });
+      if ($("#fl")) $("#fl").onchange = e => { W.free = e.target.checked; W.att = {}; show(); };
+      if ($("#pk")) $("#pk").onchange = e => { W.pk = e.target.value; W.att = {}; show(); };
+      if ($("#rnd")) $("#rnd").onclick = () => { if (!pool()) return; const p = [...pool()].sort(() => Math.random() - .5); ATTRS.forEach(([k], i) => W.att[k] = p[i]); show(); };
+      on("[data-cu]", b => b.onclick = () => { W.cult = b.dataset.cu; W.pro = []; W.spec = {}; W.cp = {}; W.p2 = {}; show(); });
+      on("[data-pr]", e => e.onchange = () => { const n = e.dataset.pr; if (e.checked) W.pro.push(n); else { W.pro = W.pro.filter(x => x != n); delete W.cp[n]; delete W.p2[n]; } show(); });
+      on("[data-sp]", e => e.oninput = () => { W.spec[e.dataset.sp] = e.value; });
+      on("[data-cp]", e => e.oninput = () => { W.cp[e.dataset.cp] = +e.value; upd(); });
+      on("[data-p2]", e => e.oninput = () => { W.p2[e.dataset.p2] = +e.value; upd(); });
+      on("[data-ps]", e => e.oninput = () => { W.pass[e.dataset.ps] = e.value; });
+      $("#wb").onclick = () => { W.step--; show(); };
+      $("#wn").onclick = () => { const m = check(); if (m) return $("#wm").textContent = m; if (st < 5) { W.step++; show(); } else finish(); };
+      upd(); };
+    const finish = () => {
+      Object.assign(s, {nome: W.nome, idade: W.idade, genero: W.genero, peso: W.peso, terra: W.terra, classe: W.classe, cultura: W.cult, prof: W.prof});
+      s.att = Object.fromEntries(Object.entries(W.att).map(([k, v]) => [k, +v])); s.altura = (1.4 + 0.03 * s.att.TAM).toFixed(2).replace(".", ",") + "m";
+      s.bn = {}; s.cs = [];
+      sk().forEach(x => { const v = (W.cp[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
+      s.es = [{n: W.estilo, a: "FOR", b: "DES", x: W.p2.__e || 0}];
+      s.ps = W.pass.map((n, i) => ({n, a: "POD", b: "CAR", x: [40, 30, 20][i]}));
+      s.nivel = 1; s.hp = {}; s.criada = true; W = null; draw(); save(); };
+    show(); };
   draw();
 }
 
