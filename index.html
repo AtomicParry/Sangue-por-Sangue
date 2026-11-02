@@ -180,11 +180,14 @@ async function sheetView(id) {
   const s = snap.exists ? snap.data() : {};
   s.nome ??= card.name; s.att ??= {}; s.bn ??= {}; s.hp ??= {}; s.cs ??= []; s.es ??= []; s.fad ??= 0; s.ppA ??= null; s.ps ??= []; s.arm ??= {}; s.nivel ??= 1; s.pod ??= s.poderes ? [{n: "Poderes", d: s.poderes}] : [];
   let foto = card.foto || "", sub = "Geral", t;
-  const save = () => { $("#st").textContent = "…"; clearTimeout(t); t = setTimeout(async () => {
-    const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
-    await db.doc("fichas/" + id).set(s);
-    await db.doc("cards/" + id).set({name: s.nome || card.name, foto, pv: cur, pvMax: mx, owner: card.owner || id.split("_")[0]});
-    $("#st").textContent = "✔ salvo"; }, 600); };
+  let dirty = false;
+  const flush = async () => { dirty = false; try {
+      const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
+      await db.doc("fichas/" + id).set(JSON.parse(JSON.stringify(s)));
+      await db.doc("cards/" + id).set({name: s.nome || card.name || "Sem nome", foto, pv: cur, pvMax: mx, owner: card.owner || id.split("_")[0]});
+      if ($("#st")) $("#st").textContent = "✔ salvo";
+    } catch (e) { toast("Erro ao salvar: " + (e.code || e.message)); } };
+  const save = () => { dirty = true; if ($("#st")) $("#st").textContent = "…"; clearTimeout(t); t = setTimeout(flush, 600); };
   const pct = (a, b, x) => (+s.att[a] || 0) + (+s.att[b] || 0) + (+x || 0);
   const tile = (n, a, b, path, inp = true) => `<div class="sk"><b>${n}</b><small>${a} + ${b}</small><div class="pc"><button data-roll="${esc(n)}">🎲</button><span data-p="${path}" data-a="${a}" data-b="${b}"></span></div>${inp ? `<span class="m">bônus</span> <input type="number" data-i="${path}" value="${get(s, path) ?? 0}">` : ""}</div>`;
   const sel = (v, path) => `<select data-i="${path}">${ATTRS.map(a => `<option ${a[0] == v ? "selected" : ""}>${a[0]}</option>`).join("")}</select>`;
@@ -221,7 +224,7 @@ async function sheetView(id) {
     <div class="sub">${Object.keys(pages).map(p => `<button class="${p == sub ? "on" : ""}" data-s="${p}">${p}</button>`).join("")}</div><div id="pg">${pages[sub]()}</div>`;
     bind(); paint(); document.querySelectorAll("textarea").forEach(grow); };
   const bind = () => {
-    $("#bk").onclick = () => { openId = null; render(); };
+    $("#bk").onclick = async () => { clearTimeout(t); if (dirty) await flush(); openId = null; render(); };
     $("#del").onclick = delSheet;
     document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { sub = b.dataset.s; draw(); });
     $("#ph").onclick = () => $("#fi").click();
@@ -308,7 +311,7 @@ async function sheetView(id) {
       sk().forEach(x => { const v = (W.cp[x.k] || 0) + (W.p1[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
       s.es = [{n: W.estilo, a: "FOR", b: "DES", x: W.p2.__e || 0}];
       s.ps = W.pass.map((n, i) => ({n, a: "POD", b: "CAR", x: [40, 30, 20][i]}));
-      s.nivel = 1; s.hp = {}; s.criada = true; W = null; draw(); save(); };
+      s.nivel = 1; s.hp = {}; s.criada = true; W = null; draw(); flush(); };
     show(); };
   draw();
 }
