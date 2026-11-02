@@ -100,6 +100,11 @@ nav,main,#dice{position:relative;z-index:1}nav{position:sticky}
 .rc.glow{border-color:#fff;box-shadow:0 0 22px #fff7,inset 0 0 14px #fff2}.rc.fum{border-color:var(--r);background:#2a0a0d}
 @keyframes pop{from{transform:scale(.88) rotate(-3deg);opacity:0}to{transform:none;opacity:1}}
 @media(min-width:1100px){body.dopen main{padding-right:350px}}
+#pr{display:flex;flex-direction:column;flex:1;min-height:0}.off{display:none!important}#pi{flex:1;overflow:auto;padding:12px}
+.dtabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px 0}.dtabs .on{background:linear-gradient(#e0252f,#a31820);border-color:var(--r)}
+.ia{display:flex;gap:6px;margin-bottom:10px}.ia select{flex:1}.ia input{width:60px}
+.il{display:grid;gap:8px;margin-top:12px}.ie{display:flex;align-items:center;gap:10px;background:#171717;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.ie.cur{border-color:#fff;box-shadow:0 0 14px #fff5}.ie.npc{border-left:3px solid var(--r)}.ie .in{font-size:20px;font-weight:800;min-width:44px;text-align:center}.ie .in input{width:56px;text-align:center}.ie b{flex:1}
 </style>
 </head>
 <body>
@@ -130,7 +135,7 @@ const hpMax = (p, sum) => { const c = Math.max(0, Math.floor((sum - 1) / 5)); re
 const dano = x => x <= 5 ? "-1d8" : x <= 10 ? "-1d6" : x <= 15 ? "-1d4" : x <= 20 ? "-1d2" : x <= 25 ? "0" : x <= 30 ? "+1d2" : x <= 35 ? "+1d4" : x <= 40 ? "+1d6" : "+1d8";
 const calc = s => { const a = k => +s.att[k] || 0, hm = {};
   PARTS.forEach(([k,, t]) => hm[k] = hpMax(t, a("CON") + a("TAM")));
-  return {hm, vitMax: Object.values(hm).reduce((x, y) => x + y, 0), pa: Math.ceil((a("INT") + a("DES")) / 12), pp: a("POD"), sorte: Math.max(1, Math.ceil(a("POD") / 6)), cura: Math.max(1, Math.ceil(a("CON") / 6)),
+  return {hm, vitMax: Object.values(hm).reduce((x, y) => x + y, 0), pa: Math.ceil((a("INT") + a("DES")) / 12), pp: a("POD"), luc: a("POD"), sorte: Math.max(1, Math.ceil(a("POD") / 6)), cura: Math.max(1, Math.ceil(a("CON") / 6)),
     dano: dano(a("FOR") + a("TAM")), xp: a("CAR") <= 6 ? -1 : Math.floor((a("CAR") - 1) / 6) - 1, ini: Math.ceil((a("INT") + a("DES")) / 2)}; };
 /* ===================================================== */
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -156,7 +161,29 @@ let diceOpen = innerWidth > 1100;
 const setDice = o => { diceOpen = o; $("#dice")?.classList.toggle("open", o); document.body.classList.toggle("dopen", o); };
 const openDice = () => setDice(true);
 const rollDice = n => { const q = Math.max(1, Math.min(20, +$("#dq").value || 1)), mod = +$("#dm").value || 0, rolls = Array.from({length: q}, () => 1 + Math.floor(Math.random() * n)); pushRoll({kind: "dice", title: `${q}d${n}${mod ? (mod > 0 ? "+" : "") + mod : ""}`, rolls, mod, total: rolls.reduce((a, b) => a + b, 0) + mod}); };
-const initDice = () => { setDice(diceOpen); $("#dt").onclick = () => setDice(!diceOpen);
+const iniBase = async id => { try { const d = await db.doc("fichas/" + id).get(); return d.exists && d.data().att ? calc({att: d.data().att}).ini : 0; } catch (e) { return 0; } };
+const saveIni = o => db.doc("session/iniciativa").set(JSON.parse(JSON.stringify(o)));
+const addIni = arr => { const L = [...(cache.ini?.list || [])]; arr.forEach(x => { if (!L.some(y => y.id == x.id)) L.push(x); }); L.sort((a, b) => b.ini - a.ini); return saveIni({list: L, turno: 0}); };
+const renderIni = () => { const el = $("#dini"); if (!el) return; const L = cache.ini?.list || [], t = cache.ini?.turno || 0;
+  const bonus = () => $("#id10")?.checked ? 1 + Math.floor(Math.random() * 10) : 0;
+  el.innerHTML = (isAdmin ? `<div class="ia"><select id="isel"><optgroup label="Personagens">${cache.cards.map(c => `<option value="pc:${c.id}">${esc(c.name)}</option>`).join("")}</optgroup><optgroup label="NPCs">${cache.npcs.map(n => `<option value="npc:${n.id}">${esc(n.nome)}</option>`).join("")}</optgroup></select><input id="iv" type="number" placeholder="Ini"><button id="iadd">+</button></div>
+    <div class="row"><button class="g" id="ipc">Puxar personagens</button><button class="g" id="inpc">Puxar NPCs</button></div>
+    <div class="row"><label><input type="checkbox" id="id10"> +1d10</label><button class="g" id="inext">Próximo ▶</button><button class="g" id="iclr">Zerar</button></div>` : "")
+    + `<div class="il">${L.length ? L.map((x, i) => `<div class="ie ${i == t ? "cur" : ""} ${x.tipo}"><span class="in">${isAdmin ? `<input type="number" data-ie="${i}" value="${x.ini}">` : x.ini}</span><b>${esc(x.nome)}</b>${x.tipo == "npc" ? '<span class="m">NPC</span>' : ""}${isAdmin ? `<button class="g" data-irm="${i}">✕</button>` : ""}</div>`).join("") : '<p class="m">Ninguém na iniciativa.</p>'}</div>`;
+  if (!isAdmin) return;
+  $("#iadd").onclick = async () => { const [tp, id] = $("#isel").value.split(":"), v = $("#iv").value;
+    const x = tp == "pc" ? cache.cards.find(c => c.id == id) : cache.npcs.find(n => n.id == id); if (!x) return;
+    const base = v !== "" ? +v : (tp == "pc" ? await iniBase(id) : x.ini || 0) + bonus();
+    addIni([{id, nome: x.name || x.nome, ini: base, tipo: tp}]); };
+  $("#ipc").onclick = async () => { const ids = cache.session?.ids?.length ? cache.session.ids : cache.cards.map(c => c.id), arr = [];
+    for (const id of ids) { const c = cache.cards.find(y => y.id == id); if (c) arr.push({id, nome: c.name, ini: (await iniBase(id)) + bonus(), tipo: "pc"}); } addIni(arr); };
+  $("#inpc").onclick = () => addIni(cache.npcs.map(n => ({id: n.id, nome: n.nome, ini: (n.ini || 0) + bonus(), tipo: "npc"})));
+  $("#inext").onclick = () => L.length && saveIni({list: L, turno: (t + 1) % L.length});
+  $("#iclr").onclick = () => confirm("Zerar a iniciativa?") && saveIni({list: [], turno: 0});
+  document.querySelectorAll("[data-ie]").forEach(e => e.onchange = () => { const n = L.map(x => ({...x})); n[e.dataset.ie].ini = +e.value; n.sort((a, b) => b.ini - a.ini); saveIni({list: n, turno: t}); });
+  document.querySelectorAll("[data-irm]").forEach(b => b.onclick = () => { const i = +b.dataset.irm, n = L.filter((_, j) => j != i); saveIni({list: n, turno: Math.max(0, Math.min(n.length - 1, i < t ? t - 1 : t))}); }); };
+const initDice = () => {
+  document.querySelectorAll("[data-dt]").forEach(b => b.onclick = () => { const i = b.dataset.dt == "i"; $("#pr").classList.toggle("off", i); $("#pi").classList.toggle("off", !i); document.querySelectorAll("[data-dt]").forEach(x => x.classList.toggle("on", x == b)); if (i) renderIni(); }); setDice(diceOpen); $("#dt").onclick = () => setDice(!diceOpen);
   document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => rollDice(+b.dataset.d));
   if ($("#dclr")) $("#dclr").onclick = async () => { if (!confirm("Limpar o histórico de rolagens?")) return; const s = await db.collection("rolls").limit(200).get(); await Promise.all(s.docs.map(d => d.ref.delete())); };
   renderLog(); };
@@ -179,6 +206,7 @@ auth.onAuthStateChanged(u => {
   subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId) render(); }));
   subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; if (tab === "sessao") render(); }));
   subs.push(db.collection("rolls").orderBy("t", "desc").limit(40).onSnapshot(s => { cache.rolls = s.docs.map(d => ({id: d.id, ...d.data()})).reverse(); renderLog(); }, e => toast("Rolagens: " + e.code)));
+  subs.push(db.doc("session/iniciativa").onSnapshot(s => { cache.ini = s.data() || {list: [], turno: 0}; renderIni(); }, e => toast("Iniciativa: " + e.code)));
   subs.push(db.doc("masters/" + u.uid).onSnapshot(s => { isAdmin = s.exists; npcSub?.(); npcSub = null;
     if (isAdmin) npcSub = db.collection("npcs").onSnapshot(n => { cache.npcs = n.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs") render(); });
     else if (tab === "npcs") tab = "fichas";
@@ -186,7 +214,7 @@ auth.onAuthStateChanged(u => {
   shell();
 });
 function shell() {
-  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main><aside id="dice"><button id="dt" title="Dados">🎲</button><div class="dh"><b>DADOS</b>${isAdmin ? '<button class="g" id="dclr">Limpar</button>' : ""}</div><div id="dlog"></div><div class="dbar"><div class="dd">${[4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("")}</div><div class="dm"><label>Qtd</label><input id="dq" type="number" value="1" min="1" max="20"><label>Mod</label><input id="dm" type="number" value="0"></div><p class="m" style="margin:0;font-size:11px">Clique em uma perícia da ficha para rolar d100.</p></div></aside>`;
+  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main><aside id="dice"><button id="dt" title="Dados">🎲</button><div class="dh"><b>DADOS</b>${isAdmin ? '<button class="g" id="dclr">Limpar</button>' : ""}</div><div class="dtabs"><button class="g on" data-dt="r">Rolagens</button><button class="g" data-dt="i">Iniciativa</button></div><div id="pr"><div id="dlog"></div><div class="dbar"><div class="dd">${[4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("")}</div><div class="dm"><label>Qtd</label><input id="dq" type="number" value="1" min="1" max="20"><label>Mod</label><input id="dm" type="number" value="0"></div><p class="m" style="margin:0;font-size:11px">Clique em uma perícia da ficha para rolar d100.</p></div></div><div id="pi" class="off"><div id="dini"></div></div></aside>`;
   document.querySelectorAll("nav [data-t]").forEach(b => b.onclick = () => { tab = b.dataset.t; openId = null; render(); });
   $("#out").onclick = () => auth.signOut();
   initDice();
@@ -256,7 +284,7 @@ async function sheetView(id) {
     <div class="top"><div class="ph" id="ph" style="background-image:url('${foto}')" title="Clique para trocar a foto"></div>
     <div class="pn" style="margin:0"><input data-i="nome" value="${esc(s.nome)}" style="font-size:22px;font-weight:700;width:100%;background:none;border:0"><div class="prof">${prof.map(([k, n]) => `<div><label>${n}</label><input data-i="${k}" value="${esc(s[k])}"></div>`).join("")}</div>
     <div class="row"><label class="m">NÍVEL DE FADIGA</label><select id="fad" data-i="fad">${FADIGA.map((f, i) => `<option value="${i}">${f}</option>`).join("")}</select></div></div>
-    <div class="side"><div class="st" style="color:#fff"><input type="number" data-i="nivel" value="${s.nivel ?? 1}"><small>Nível</small></div><div class="st" style="color:#ff4a55"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#ddd"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#fff"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
+    <div class="side"><div class="st" style="color:#fff"><input type="number" data-i="nivel" value="${s.nivel ?? 1}"><small>Nível</small></div><div class="st" style="color:#ff4a55"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#ff8a92"><input type="number" data-i="luA" value="${s.luA ?? o.luc}">/<span data-o="luc"></span><small>Lucidez</small></div><div class="st" style="color:#ddd"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#fff"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
     <input type="file" id="fi" accept="image/*" hidden>
     <div class="sub">${Object.keys(pages).map(p => `<button class="${p == sub ? "on" : ""}" data-s="${p}">${p}</button>`).join("")}</div><div id="pg">${pages[sub]()}</div>`;
     bind(); paint(); document.querySelectorAll("textarea").forEach(grow); };
@@ -370,7 +398,7 @@ function sessaoView() {
 /* ---------- NPCs (modo mestre) ---------- */
 function npcsView() {
   $("#main").innerHTML = `<h2>NPCs <span class="m">(privado)</span></h2><button id="nn">+ Novo NPC</button>
-  ${cache.npcs.map(n => `<div class="pn" data-n="${n.id}"><div class="row"><input data-f="nome" value="${esc(n.nome)}" placeholder="Nome"> PV <input data-f="pv" type="number" style="width:80px" value="${n.pv ?? 10}"><button class="g" data-d="${n.id}">Excluir</button></div><textarea data-f="notas" placeholder="Atributos, perícias, ataques...">${esc(n.notas)}</textarea></div>`).join("")}`;
+  ${cache.npcs.map(n => `<div class="pn" data-n="${n.id}"><div class="row"><input data-f="nome" value="${esc(n.nome)}" placeholder="Nome"> PV <input data-f="pv" type="number" style="width:80px" value="${n.pv ?? 10}"> Ini <input data-f="ini" type="number" style="width:80px" value="${n.ini ?? 0}"><button class="g" data-d="${n.id}">Excluir</button></div><textarea data-f="notas" placeholder="Atributos, perícias, ataques...">${esc(n.notas)}</textarea></div>`).join("")}`;
   $("#nn").onclick = () => db.collection("npcs").add({nome: "Novo NPC", pv: 10, notas: ""});
   document.querySelectorAll("[data-f]").forEach(e => e.onchange = () => db.doc("npcs/" + e.closest("[data-n]").dataset.n).update({[e.dataset.f]: e.type === "number" ? +e.value : e.value}));
   document.querySelectorAll("[data-d]").forEach(e => e.onclick = () => confirm("Excluir?") && db.doc("npcs/" + e.dataset.d).delete());
