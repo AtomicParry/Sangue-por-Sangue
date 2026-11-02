@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mesa Mythras</title>
+<title>Sangue Por Sangue</title>
 <style>
 :root{--bg:#000;--p:#141414;--p2:#262626;--r:#c0212b;--r2:#ff4a55;--t:#eee;--m:#8a8a8a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:14px system-ui,sans-serif}
@@ -82,6 +82,24 @@ main{max-width:1180px;padding:28px 22px}.pn{padding:20px 22px;margin:18px 0;bord
 .steps i{font-style:normal;width:22px;height:22px;border-radius:50%;background:#262626;display:grid;place-items:center;font-size:11px}.steps .on{color:#fff;border-color:var(--r)}.steps .on i{background:var(--r)}.steps .ok i{background:#555;color:#fff}
 .wz{max-width:880px;margin:0 auto}.wg{gap:18px}.wg label{margin-bottom:6px}.skg,.attrs,.der,.top,.row{gap:12px}.sk{padding:14px}.sub{margin:20px 0}.sub button{padding:9px 20px}.prof{gap:16px}
 @media(max-width:760px){.rw{grid-template-columns:26px 1fr 70px 70px}.rs{grid-template-columns:1fr 70px 70px 80px}}
+
+body{background-color:#060606;background-image:radial-gradient(900px 520px at 12% -8%,#3f070c 0,transparent 62%),radial-gradient(700px 600px at 100% 100%,#1d1d1d 0,transparent 60%),linear-gradient(rgba(255,255,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.028) 1px,transparent 1px);background-size:auto,auto,46px 46px,46px 46px;background-attachment:fixed}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse at center,transparent 55%,#000c 100%)}
+nav,main,#dice{position:relative;z-index:1}nav{position:sticky}
+.vit{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.vit input{width:110px;font-size:34px;font-weight:800;text-align:center;background:none;border:0;border-bottom:2px solid var(--r);border-radius:0;color:#fff}.vit .m b{font-size:24px;color:#fff}
+.sk{cursor:pointer;transition:.15s}.sk:hover{border-color:var(--r2);box-shadow:0 0 14px #d3202c50}
+#dice{position:fixed;top:56px;right:0;bottom:0;width:min(320px,92vw);background:linear-gradient(#141414,#0a0a0a);border-left:1px solid var(--line);z-index:8;display:flex;flex-direction:column;transform:translateX(100%);transition:.25s;box-shadow:-10px 0 40px #000a}
+#dice.open{transform:none}#dt{position:absolute;left:-46px;top:20px;width:46px;height:46px;border-radius:12px 0 0 12px;font-size:20px;padding:0}
+.dh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;letter-spacing:2px}
+#dlog{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.dbar{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px}.dd{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.dd button{padding:8px 0}
+.dm{display:flex;gap:8px;align-items:center}.dm input{width:64px;text-align:center}
+.rc{background:#171717;border:1px solid var(--line);border-radius:12px;padding:10px 12px;animation:pop .35s}
+.rc .rh{font-size:12px;color:var(--m)}.rc .rh b{color:#fff}.rc .rn{font-size:34px;font-weight:800;color:#fff;line-height:1.1}.rc .rv{font-weight:700;color:var(--r2);margin-bottom:6px}
+.rc table{font-size:12px}.rc tr.ok td{color:#fff}.rc tr.no td{color:#666}.rc td:last-child{text-align:right}
+.rc.glow{border-color:#fff;box-shadow:0 0 22px #fff7,inset 0 0 14px #fff2}.rc.fum{border-color:var(--r);background:#2a0a0d}
+@keyframes pop{from{transform:scale(.88) rotate(-3deg);opacity:0}to{transform:none;opacity:1}}
+@media(min-width:1100px){body.dopen main{padding-right:350px}}
 </style>
 </head>
 <body>
@@ -112,7 +130,7 @@ const hpMax = (p, sum) => { const c = Math.max(0, Math.floor((sum - 1) / 5)); re
 const dano = x => x <= 5 ? "-1d8" : x <= 10 ? "-1d6" : x <= 15 ? "-1d4" : x <= 20 ? "-1d2" : x <= 25 ? "0" : x <= 30 ? "+1d2" : x <= 35 ? "+1d4" : x <= 40 ? "+1d6" : "+1d8";
 const calc = s => { const a = k => +s.att[k] || 0, hm = {};
   PARTS.forEach(([k,, t]) => hm[k] = hpMax(t, a("CON") + a("TAM")));
-  return {hm, pa: Math.ceil((a("INT") + a("DES")) / 12), pp: a("POD"), sorte: Math.max(1, Math.ceil(a("POD") / 6)), cura: Math.max(1, Math.ceil(a("CON") / 6)),
+  return {hm, vitMax: Object.values(hm).reduce((x, y) => x + y, 0), pa: Math.ceil((a("INT") + a("DES")) / 12), pp: a("POD"), sorte: Math.max(1, Math.ceil(a("POD") / 6)), cura: Math.max(1, Math.ceil(a("CON") / 6)),
     dano: dano(a("FOR") + a("TAM")), xp: a("CAR") <= 6 ? -1 : Math.floor((a("CAR") - 1) / 6) - 1, ini: Math.ceil((a("INT") + a("DES")) / 2)}; };
 /* ===================================================== */
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -127,9 +145,25 @@ const toast = t => { const e = $("#toast"); e.textContent = t; e.style.display =
 const img = (f, max, q) => new Promise(r => { const i = new Image(); i.onload = () => { const k = Math.min(1, max / Math.max(i.width, i.height)), c = document.createElement("canvas"); c.width = i.width * k; c.height = i.height * k; c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); r(c.toDataURL("image/jpeg", q)); }; i.src = URL.createObjectURL(f); });
 const d100 = (n, p) => { const r = 1 + Math.floor(Math.random() * 100), c = Math.ceil(p / 10); toast(`${n}: ${r} vs ${p}% → ${r <= c ? "SUCESSO CRÍTICO" : r >= 99 ? "FALHA CRÍTICA" : r <= p ? "Sucesso" : "Falha"}`); };
 
+const LV = [["Muito Fácil", 2], ["Fácil", 1.5], ["Padrão", 1], ["Difícil", .666], ["Formidável", .5045], ["Herculeana", .1081]];
+const evalRoll = (v, r) => { const fum = r >= 99, rows = LV.map(([n, m]) => { const l = Math.floor(v * m), ok = !fum && r <= l; return {n, l, ok, c: ok && r <= Math.max(1, Math.floor(l * .1))}; }); let hi = -1; rows.forEach((x, i) => { if (x.ok) hi = i; }); return {rows, fum, hi, crit: hi >= 0 && rows[hi].c}; };
+const rollHTML = x => { if (x.kind == "skill") { const e = evalRoll(x.v, x.r);
+    return `<div class="rc ${e.crit ? "glow" : ""} ${e.fum ? "fum" : ""}"><div class="rh"><b>${esc(x.who)}</b> · ${esc(x.title)} (${x.v}%)</div><div class="rn">${x.r}</div><div class="rv">${e.fum ? "FALHA CRÍTICA" : e.hi < 0 ? "Falha" : e.rows[e.hi].n + (e.crit ? " · CRÍTICO!" : "")}</div><table>${e.rows.map(y => `<tr class="${y.ok ? "ok" : "no"}"><td>${y.n}</td><td>≤ ${y.l}</td><td>${y.ok ? "✓" : "✗"}${y.c ? " CRITOU!" : ""}</td></tr>`).join("")}</table></div>`; }
+  return `<div class="rc"><div class="rh"><b>${esc(x.who)}</b> · ${esc(x.title)}</div><div class="rn">${x.total}</div><div class="m">[${(x.rolls || []).join(", ")}]${x.mod ? (x.mod > 0 ? " +" : " ") + x.mod : ""}</div></div>`; };
+const renderLog = () => { const l = $("#dlog"); if (!l) return; l.innerHTML = (cache.rolls || []).map(rollHTML).join("") || '<p class="m">Nenhuma rolagem ainda.</p>'; l.scrollTop = l.scrollHeight; };
+const pushRoll = async d => { try { await db.collection("rolls").add({...d, who: d.who || cache.cards.find(c => (c.owner || c.id) === me.uid)?.name || me.email.split("@")[0], uid: me.uid, t: firebase.firestore.FieldValue.serverTimestamp()}); } catch (e) { toast("Erro ao rolar: " + (e.code || e.message)); } };
+let diceOpen = innerWidth > 1100;
+const setDice = o => { diceOpen = o; $("#dice")?.classList.toggle("open", o); document.body.classList.toggle("dopen", o); };
+const openDice = () => setDice(true);
+const rollDice = n => { const q = Math.max(1, Math.min(20, +$("#dq").value || 1)), mod = +$("#dm").value || 0, rolls = Array.from({length: q}, () => 1 + Math.floor(Math.random() * n)); pushRoll({kind: "dice", title: `${q}d${n}${mod ? (mod > 0 ? "+" : "") + mod : ""}`, rolls, mod, total: rolls.reduce((a, b) => a + b, 0) + mod}); };
+const initDice = () => { setDice(diceOpen); $("#dt").onclick = () => setDice(!diceOpen);
+  document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => rollDice(+b.dataset.d));
+  if ($("#dclr")) $("#dclr").onclick = async () => { if (!confirm("Limpar o histórico de rolagens?")) return; const s = await db.collection("rolls").limit(200).get(); await Promise.all(s.docs.map(d => d.ref.delete())); };
+  renderLog(); };
 const grow = e => { e.style.height = "auto"; e.style.height = e.scrollHeight + "px"; };
 function loginView(msg = "") {
-  app.innerHTML = `<div class="box"><h2>⚔ Mesa Mythras</h2><input id="u" placeholder="Nome de usuário"><input id="p" type="password" placeholder="Senha (mín. 6)">
+  document.body.classList.remove("dopen");
+  app.innerHTML = `<div class="box"><h2>Sangue Por Sangue</h2><input id="u" placeholder="Nome de usuário"><input id="p" type="password" placeholder="Senha (mín. 6)">
   <button id="in">Entrar</button><button id="reg" class="g">Criar conta</button><div class="err">${msg}</div></div>`;
   const go = async reg => { const n = $("#u").value, p = $("#p").value, e = slug(n) + DOM; if (!slug(n)) return loginView("Informe um nome.");
     try { if (reg) { const c = await auth.createUserWithEmailAndPassword(e, p);
@@ -144,6 +178,7 @@ auth.onAuthStateChanged(u => {
   tab = "fichas"; openId = null;
   subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId) render(); }));
   subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; if (tab === "sessao") render(); }));
+  subs.push(db.collection("rolls").orderBy("t", "desc").limit(40).onSnapshot(s => { cache.rolls = s.docs.map(d => ({id: d.id, ...d.data()})).reverse(); renderLog(); }, e => toast("Rolagens: " + e.code)));
   subs.push(db.doc("masters/" + u.uid).onSnapshot(s => { isAdmin = s.exists; npcSub?.(); npcSub = null;
     if (isAdmin) npcSub = db.collection("npcs").onSnapshot(n => { cache.npcs = n.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs") render(); });
     else if (tab === "npcs") tab = "fichas";
@@ -151,9 +186,10 @@ auth.onAuthStateChanged(u => {
   shell();
 });
 function shell() {
-  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main>`;
+  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main><aside id="dice"><button id="dt" title="Dados">🎲</button><div class="dh"><b>DADOS</b>${isAdmin ? '<button class="g" id="dclr">Limpar</button>' : ""}</div><div id="dlog"></div><div class="dbar"><div class="dd">${[4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("")}</div><div class="dm"><label>Qtd</label><input id="dq" type="number" value="1" min="1" max="20"><label>Mod</label><input id="dm" type="number" value="0"></div><p class="m" style="margin:0;font-size:11px">Clique em uma perícia da ficha para rolar d100.</p></div></aside>`;
   document.querySelectorAll("nav [data-t]").forEach(b => b.onclick = () => { tab = b.dataset.t; openId = null; render(); });
   $("#out").onclick = () => auth.signOut();
+  initDice();
   $("#ms").onclick = async () => { try {
     if (isAdmin) await db.doc("masters/" + me.uid).delete();
     else { const k = prompt("Senha do mestre:"); if (k) await db.doc("masters/" + me.uid).set({k}); }
@@ -182,7 +218,7 @@ async function sheetView(id) {
   let foto = card.foto || "", sub = "Geral", t;
   let dirty = false;
   const flush = async () => { dirty = false; try {
-      const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
+      const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur0 = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0), cur = Math.max(0, Math.min(mx, s.vit ?? cur0));
       await db.doc("fichas/" + id).set(JSON.parse(JSON.stringify(s)));
       await db.doc("cards/" + id).set({name: s.nome || card.name || "Sem nome", foto, pv: cur, pvMax: mx, owner: card.owner || id.split("_")[0]});
       if ($("#st")) $("#st").textContent = "✔ salvo";
@@ -194,12 +230,12 @@ async function sheetView(id) {
   const editor = (k, ph) => `<div class="skg">${s[k].map((x, i) => `<div class="sk"><input class="nm" data-i="${k}.${i}.n" value="${esc(x.n)}" placeholder="${ph}"><div class="ab">${sel(x.a, k + "." + i + ".a")}${sel(x.b, k + "." + i + ".b")}</div><div class="pc"><button data-roll="${esc(x.n)}">🎲</button><span data-p="${k}.${i}.x" data-a="${x.a}" data-b="${x.b}"></span></div><span class="m">bônus</span> <input type="number" data-i="${k}.${i}.x" value="${x.x || 0}"> <button class="g" data-del="${k}.${i}">✕</button></div>`).join("")}</div><div class="row"><button class="g" data-add="${k}">+ Adicionar</button></div>`;
   const prof = [["genero", "Gênero"], ["idade", "Idade"], ["terra", "Terra natal"], ["cultura", "Cultura"], ["altura", "Altura"], ["peso", "Peso"], ["classe", "Classe social"], ["prof", "Profissão"]];
   const pages = {
-    Geral: () => `<div class="pn"><h3>Atributos</h3><div class="row"><select id="pre"><option value="">-- Distribuição --</option>${Object.entries(PRESETS).map(([k, v]) => `<option value="${k}">${k} (${v.join(", ")})</option>`).join("")}</select><span class="m">preenche em ordem; ajuste depois</span></div>
+    Geral: () => `<div class="pn"><h3>Atributos</h3>
       <div class="attrs">${ATTRS.map(([k, n, c]) => `<div class="at" style="--c:${c}"><em>${k}</em><input type="number" data-i="att.${k}" value="${s.att[k] ?? 10}"><small>${n}</small></div>`).join("")}</div></div>
       <div class="pn"><h3>Derivados</h3><div class="der"><div>Pts. de Ação<b data-o="pa"></b></div><div>Mod. de Dano<b data-o="dano"></b></div><div>Mod. de XP<b data-o="xp"></b></div><div>Taxa de Cura<b data-o="cura"></b></div><div>Iniciativa<b data-o="ini"></b></div><div>Pts. de Sorte<b data-o="sorte"></b></div><div>Pts. de Poder<b data-o="pp"></b></div></div></div>`,
     "Perícias": () => `<div class="pn"><h3>Perícias básicas</h3><div class="skg">${BASIC.map(([n, a, b]) => tile(n, a, b, "bn." + n)).join("")}</div></div><div class="pn"><h3>Perícias profissionais / outras</h3>${editor("cs", "Nome da perícia")}</div><div class="pn"><h3>Paixões</h3>${editor("ps", "Paixão")}</div>`,
     Combate: () => `<div class="pn"><h3>Estilos de combate</h3>${editor("es", "Nome do estilo")}</div>
-      <div class="pn"><h3>Localização de acerto</h3><div class="body">${PARTS.map(([k, n]) => `${k == "cab" ? "<span></span>" : ""}<div class="bp" data-bp="${k}">${n}<br><input type="number" data-i="hp.${k}"> / <span data-o="hm.${k}"></span><div class="ar">🛡 Armadura <input type="number" data-i="arm.${k}" value="${s.arm[k] ?? 0}"></div></div>${k == "cab" ? "<span></span>" : ""}`).join("")}</div>
+      <div class="pn"><h3>Vitalidade</h3><div class="vit"><button class="g" data-vd="-5">−5</button><button class="g" data-vd="-1">−1</button><input type="number" data-i="vit"><span class="m">/ <b data-o="vitMax"></b></span><button class="g" data-vd="1">+1</button><button class="g" data-vd="5">+5</button></div><p class="m">Soma da vida de todas as partes do corpo. Reduza conforme o dano total.</p></div><div class="pn"><h3>Localização de acerto</h3><div class="body">${PARTS.map(([k, n]) => `${k == "cab" ? "<span></span>" : ""}<div class="bp" data-bp="${k}">${n}<br><input type="number" data-i="hp.${k}"> / <span data-o="hm.${k}"></span><div class="ar">🛡 Armadura <input type="number" data-i="arm.${k}" value="${s.arm[k] ?? 0}"></div></div>${k == "cab" ? "<span></span>" : ""}`).join("")}</div>
       <p class="m">Vida por parte do corpo calculada por CON + TAM.</p><button class="g" id="rl">🎲 Rolar local de acerto</button></div>
       <div class="pn"><h3>Resistências</h3><div class="skg">${RESIST.map(n => { const b = BASIC.find(x => x[0] == n); return tile(n, b[1], b[2], "bn." + n, false); }).join("")}</div></div>
       <div class="pn"><h3>Condições e ferimentos</h3><textarea data-i="cond">${esc(s.cond)}</textarea></div>`,
@@ -209,6 +245,7 @@ async function sheetView(id) {
     document.querySelectorAll("[data-p]").forEach(e => e.textContent = pct(e.dataset.a, e.dataset.b, get(s, e.dataset.p)) + "%");
     document.querySelectorAll("[data-o]").forEach(e => { const k = e.dataset.o; e.textContent = k.startsWith("att.") ? s.att[k.slice(4)] ?? 10 : k.startsWith("hm.") ? o.hm[k.slice(3)] : o[k] ?? ""; });
     document.querySelectorAll("[data-bp]").forEach(e => { const k = e.dataset.bp, i = e.querySelector("input"), m = o.hm[k]; if (s.hp[k] == null) i.value = m; const v = +i.value; e.className = "bp " + (v <= 0 ? "d" : v < m ? "w" : ""); });
+    const vi = document.querySelector('[data-i="vit"]'); if (vi && s.vit == null) vi.value = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
     const f = $("#fad"); if (f) f.value = s.fad;
   };
   const draw = () => {
@@ -226,6 +263,7 @@ async function sheetView(id) {
   const bind = () => {
     $("#bk").onclick = async () => { clearTimeout(t); if (dirty) await flush(); openId = null; render(); };
     $("#del").onclick = delSheet;
+    document.querySelectorAll("[data-vd]").forEach(b => b.onclick = () => { const o = calc(s), cur = s.vit ?? PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0); s.vit = Math.max(0, Math.min(o.vitMax, cur + +b.dataset.vd)); document.querySelector('[data-i="vit"]').value = s.vit; save(); });
     document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { sub = b.dataset.s; draw(); });
     $("#ph").onclick = () => $("#fi").click();
     $("#fi").onchange = async e => { foto = await img(e.target.files[0], 400, .7); $("#ph").style.backgroundImage = `url('${foto}')`; save(); };
@@ -235,9 +273,10 @@ async function sheetView(id) {
       paint(); save(); });
     document.querySelectorAll("[data-add]").forEach(b => b.onclick = () => { s[b.dataset.add].push(b.dataset.add == "pod" ? {n: "", d: ""} : {n: "", a: b.dataset.add == "ps" ? "POD" : "FOR", b: b.dataset.add == "ps" ? "CAR" : "DES", x: 0}); draw(); save(); });
     document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { const [k, i] = b.dataset.del.split("."); s[k].splice(i, 1); draw(); save(); });
-    document.querySelectorAll("[data-roll]").forEach(b => b.onclick = () => d100(b.closest(".sk")?.querySelector(".nm")?.value || b.dataset.roll, parseInt(b.parentElement.querySelector("[data-p]").textContent)));
+    const rollTile = el => { const v = parseInt(el.querySelector("[data-p]").textContent) || 0, title = el.querySelector(".nm")?.value || el.querySelector("b")?.textContent || "Perícia"; openDice(); pushRoll({kind: "skill", title, v, r: 1 + Math.floor(Math.random() * 100), who: s.nome || "?"}); };
+    document.querySelectorAll(".sk").forEach(el => { el.style.cursor = "pointer"; el.onclick = ev => { if (!ev.target.closest("input,select,[data-del]")) rollTile(el); }; });
     const pre = $("#pre"); if (pre) pre.onchange = () => { const v = PRESETS[pre.value]; if (!v) return; ATTRS.forEach(([k], i) => s.att[k] = v[i]); draw(); save(); };
-    const rl = $("#rl"); if (rl) rl.onclick = () => { const r = 1 + Math.floor(Math.random() * 20), p = r <= 3 ? "Perna Dir." : r <= 6 ? "Perna Esq." : r <= 9 ? "Abdômen" : r <= 12 ? "Peito" : r <= 15 ? "Braço Dir." : r <= 18 ? "Braço Esq." : "Cabeça"; toast(`d20 = ${r} → ${p}`); };
+    const rl = $("#rl"); if (rl) rl.onclick = () => { const r = 1 + Math.floor(Math.random() * 20), p = r <= 3 ? "Perna Dir." : r <= 6 ? "Perna Esq." : r <= 9 ? "Abdômen" : r <= 12 ? "Peito" : r <= 15 ? "Braço Dir." : r <= 18 ? "Braço Esq." : "Cabeça"; openDice(); pushRoll({kind: "dice", title: "Local: " + p, rolls: [r], mod: 0, total: r, who: s.nome || "?"}); };
   };
 
   const delSheet = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return; clearTimeout(t);
