@@ -72,6 +72,16 @@ input,select,textarea{background:#181818;border:1px solid #2f2f2f}input:focus,se
 .stage{border:2px solid var(--r);box-shadow:0 0 30px #d3202c40}.bar{background:#2a0a0c}.bar i{background:linear-gradient(90deg,#a31820,#ff3b47)}
 .top .ph{border:1px solid var(--line)}.prof input{color:#fff}
 ::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:6px}::-webkit-scrollbar-track{background:#0a0a0a}
+
+main{max-width:1180px;padding:28px 22px}.pn{padding:20px 22px;margin:18px 0;border-radius:16px}h3{margin:0 0 14px}.pn>h3:not(:first-child){margin-top:26px}
+.sec{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}.hint{color:var(--m);margin:-6px 0 14px;font-size:13px}
+.rw{display:grid;grid-template-columns:26px 1fr 84px 84px;gap:10px;align-items:center;margin:10px 0}
+.rs{display:grid;grid-template-columns:1fr 84px 84px 96px;gap:10px;align-items:center;margin:10px 0}.rs input[type=number]{text-align:center}
+.tag{background:var(--r);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:2px 8px;border-radius:20px;margin-right:8px}
+.steps{display:flex;gap:8px;margin:14px 0 22px;flex-wrap:wrap}.steps span{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 5px;border-radius:30px;background:#141414;border:1px solid var(--line);color:var(--m);font-size:12px}
+.steps i{font-style:normal;width:22px;height:22px;border-radius:50%;background:#262626;display:grid;place-items:center;font-size:11px}.steps .on{color:#fff;border-color:var(--r)}.steps .on i{background:var(--r)}.steps .ok i{background:#555;color:#fff}
+.wz{max-width:880px;margin:0 auto}.wg{gap:18px}.wg label{margin-bottom:6px}.skg,.attrs,.der,.top,.row{gap:12px}.sk{padding:14px}.sub{margin:20px 0}.sub button{padding:9px 20px}.prof{gap:16px}
+@media(max-width:760px){.rw{grid-template-columns:26px 1fr 70px 70px}.rs{grid-template-columns:1fr 70px 70px 80px}}
 </style>
 </head>
 <body>
@@ -231,35 +241,40 @@ async function sheetView(id) {
     await db.doc("fichas/" + id).delete(); await db.doc("cards/" + id).delete(); openId = null; render(); };
   let W = null;
   const wizard = () => {
-    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", pf: Array.from({length: 7}, () => ({on: false, n: "", a: "INT", b: "INT"})), sd: Array(7).fill("")};
+    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", pf: Array.from({length: 3}, () => ({on: false, n: "", a: "INT", b: "INT"})), sd: Array.from({length: 7}, () => ({n: "", a: "INT", b: "INT"})), p1: {}};
     const cc = () => CULT[W.cult], pool = () => W.free ? null : PRESETS[W.pk], sum = o => Object.values(o).reduce((a, b) => a + (+b || 0), 0);
     const skc = () => { const c = cc(); return c ? [...W.pro.map(n => { const p = c.pro.find(x => x[0] == n); return {k: n, n: p[3] ? `${n} (${W.spec[n] || "?"})` : n, a: p[1], b: p[2]}; }), ...c.rest.map(n => { const b = BASIC.find(x => x[0] == n); return {k: n, n, a: b[1], b: b[2]}; })] : []; };
     const sk = () => { const l = skc(), has = k => l.some(x => x.k == k);
       W.pf.forEach((x, i) => { if (x.on && x.n.trim()) l.push({k: "pf" + i, n: x.n.trim(), a: x.a, b: x.b}); });
-      W.sd.forEach(n => { const b = n && BASIC.find(x => x[0] == n); if (b && !has(n)) l.push({k: n, n, a: b[1], b: b[2]}); });
+      W.sd.forEach((x, i) => { if (x.n.trim()) l.push({k: "sd" + i, n: x.n.trim(), a: x.a, b: x.b}); });
       return l; };
     const s2 = () => [...sk().map(x => x.k), "__e"].reduce((a, k) => a + (+W.p2[k] || 0), 0);
+    const s1 = () => sk().filter(x => /^(pf|sd)\d/.test(x.k)).reduce((a, x) => a + (+W.p1[x.k] || 0), 0);
     const remP = () => { const r = [...pool()]; Object.values(W.att).filter(v => v).map(Number).forEach(v => { const i = r.indexOf(v); i >= 0 ? r.splice(i, 1) : r.push("!"); }); return r; };
     const check = () => { const st = W.step, a = W.att;
       if (st == 0) return W.nome && W.idade && W.classe ? "" : "Preencha nome, idade e classe social.";
       if (st == 1) return W.free ? (sum(a) == 80 && ATTRS.every(([k]) => a[k] >= 3 && a[k] <= 18) && a.INT >= 8 && a.TAM >= 8 ? "" : "Some exatamente 80 pontos (3 a 18 cada; INT e TAM mín. 8).") : (pool() && ATTRS.every(([k]) => a[k]) && !remP().length ? "" : "Distribua todos os valores do pacote.");
       if (st == 2) return !W.cult ? "Escolha a cultura." : W.pro.length < 3 ? "Marque 3 perícias profissionais." : cc().pro.some(p => p[3] && W.pro.includes(p[0]) && !(W.spec[p[0]] || "").trim()) ? "Diga qual Conhecimento/Idioma." : skc().some(x => (W.cp[x.k] || 0) > 15) ? "Máximo 15 por perícia." : sum(W.cp) != 100 ? "Distribua exatamente 100 pontos." : "";
-      if (st == 3) return !(W.prof?.trim() && W.estilo?.trim()) ? "Preencha profissão e estilo de combate." : W.pf.some(x => x.on && !x.n.trim()) ? "Dê nome às perícias marcadas." : "";
+      if (st == 3) return !(W.prof?.trim() && W.estilo?.trim()) ? "Preencha profissão e estilo de combate." : W.pf.some(x => x.on && !x.n.trim()) ? "Dê nome às perícias marcadas." : s1() != 100 ? "Distribua exatamente 100 pontos nas perícias padrão." : "";
       if (st == 4) return s2() == 200 ? "" : "Distribua exatamente 200 pontos.";
       return W.pass.every(x => x.trim()) ? "" : "Escreva as 3 paixões."; };
     const show = () => { const st = W.step; let h = "";
+      const plist = () => W.pf.map((x, i) => x.on && x.n.trim() ? `<div class="rs"><div><span class="tag">Profissional</span><b>${esc(x.n)}</b></div><span class="m" style="grid-column:span 2;text-align:center">${x.a}+${x.b}</span><input type="number" min="0" data-p1="pf${i}" value="${W.p1["pf" + i] ?? 0}"></div>` : "").join("");
       if (st == 0) h = `<div class="wg"><div><label>Nome</label><input data-w="nome" value="${esc(W.nome)}"></div><div><label>Idade</label><input type="number" data-w="idade" value="${W.idade ?? ""}"></div><div><label>Gênero</label><select data-w="genero">${["Masculino", "Feminino", "Outro"].map(g => `<option ${g == W.genero ? "selected" : ""}>${g}</option>`).join("")}</select></div><div><label>Peso (kg)</label><input data-w="peso" value="${esc(W.peso)}" placeholder="Ex: 75kg"></div><div style="grid-column:1/-1"><label>Terra natal</label><input data-w="terra" value="${esc(W.terra)}" placeholder="Ex: Gemini City, Japão..."></div></div><h3>Classe social</h3><div class="row">${CLS.map(x => `<button class="chip ${x == W.classe ? "on" : ""}" data-cl="${x}">${x}</button>`).join("")}</div>`;
       if (st == 1) h = `<label class="row"><input type="checkbox" id="fl" ${W.free ? "checked" : ""}> Distribuição livre (80 pontos; mín. 8 INT e TAM)</label>${W.free ? "" : `<div class="row"><b>Pacote base</b><select id="pk"><option value="">-- Escolha --</option>${Object.entries(PRESETS).map(([k, v]) => `<option value="${k}" ${k == W.pk ? "selected" : ""}>${k} (${v.join(", ")})</option>`).join("")}</select><button class="g" id="rnd">🎲 Aleatório</button></div>`}<p id="rem"></p><div class="wg">${ATTRS.map(([k, n]) => `<div><label>${n} (${k})</label>${W.free ? `<input type="number" min="3" max="18" data-wa="${k}" value="${W.att[k] ?? ""}">` : `<select data-wa="${k}"><option value="">—</option>${[...new Set(pool() || [])].map(v => `<option ${W.att[k] == v ? "selected" : ""}>${v}</option>`).join("")}</select>`}</div>`).join("")}</div>`;
       if (st == 2) { const c = cc(); h = `<div class="row">${Object.keys(CULT).map(x => `<button class="chip ${x == W.cult ? "on" : ""}" data-cu="${x}">${x}</button>`).join("")}</div>` + (c ? `<h3>Perícias profissionais (marque 3)</h3><div class="wg">${c.pro.map(p => `<div><label><input type="checkbox" data-pr="${p[0]}" ${W.pro.includes(p[0]) ? "checked" : ""} ${!W.pro.includes(p[0]) && W.pro.length >= 3 ? "disabled" : ""}> ${p[0]}</label>${p[3] && W.pro.includes(p[0]) ? `<input data-sp="${p[0]}" value="${esc(W.spec[p[0]])}" placeholder="Qual?">` : ""}</div>`).join("")}</div>` + (W.pro.length == 3 ? `<h3>Distribua 100 pontos (0 a 15 cada)</h3><p id="rem"></p><div class="wg">${skc().map(x => `<div><label>${esc(x.n)} (${x.a}+${x.b})</label><input type="number" min="0" max="15" data-cp="${x.k}" value="${W.cp[x.k] ?? 0}"></div>`).join("")}</div>` : "") : ""); }
       if (st == 3) { const at = v => ATTRS.map(([k]) => `<option ${k == v ? "selected" : ""}>${k}</option>`).join("");
-        h = `<div class="wg"><div><label>Profissão</label><input data-w="prof" value="${esc(W.prof)}"></div><div><label>Estilo de combate (perícia FOR+DES)</label><input data-w="estilo" value="${esc(W.estilo)}" placeholder="Ex: Brigão de Bar"></div></div><h3>Perícias profissionais (marque e crie até 7)</h3>${W.pf.map((x, i) => `<div class="row"><input type="checkbox" data-pfo="${i}" ${x.on ? "checked" : ""}><input data-pfn="${i}" value="${esc(x.n)}" placeholder="Nome da perícia ${i + 1}" style="flex:1"><select data-pfa="${i}">${at(x.a)}</select><select data-pfb="${i}">${at(x.b)}</select></div>`).join("")}<h3>Perícias padrão (escolha até 7)</h3><div class="wg">${W.sd.map((v, i) => `<div><select data-sd="${i}"><option value="">—</option>${BASIC.map(b => `<option ${b[0] == v ? "selected" : ""}>${b[0]}</option>`).join("")}</select></div>`).join("")}</div>`; }
+        h = `<div class="wg"><div><label>Profissão</label><input data-w="prof" value="${esc(W.prof)}"></div><div><label>Estilo de combate (perícia FOR+DES)</label><input data-w="estilo" value="${esc(W.estilo)}" placeholder="Ex: Brigão de Bar"></div></div>
+        <div class="sec"><h3>Perícias profissionais (até 3)</h3><p class="hint">Crie e marque. As marcadas descem para as perícias padrão, onde recebem pontos.</p>${W.pf.map((x, i) => `<div class="rw"><input type="checkbox" data-pfo="${i}" ${x.on ? "checked" : ""}><input data-pfn="${i}" value="${esc(x.n)}" placeholder="Nome da perícia ${i + 1}"><select data-pfa="${i}">${at(x.a)}</select><select data-pfb="${i}">${at(x.b)}</select></div>`).join("")}</div>
+        <div class="sec"><h3>Perícias padrão — 100 pontos</h3><p class="hint" id="rem"></p><div id="pl">${plist()}</div>${W.sd.map((x, i) => `<div class="rs"><input data-sdn="${i}" value="${esc(x.n)}" placeholder="Crie uma perícia padrão ${i + 1}"><select data-sda="${i}">${at(x.a)}</select><select data-sdb="${i}">${at(x.b)}</select><input type="number" min="0" data-p1="sd${i}" value="${W.p1["sd" + i] ?? 0}"></div>`).join("")}</div>`; }
       if (st == 4) h = `<h3>Distribua 200 pontos entre as perícias do seu caminho</h3><p id="rem"></p><div class="wg">${[...sk(), {k: "__e", n: W.estilo + " (estilo)", a: "FOR", b: "DES"}].map(x => `<div><label>${esc(x.n)} <span data-pp="${x.k}"></span></label><input type="number" min="0" data-p2="${x.k}" value="${W.p2[x.k] ?? 0}"></div>`).join("")}</div>`;
       if (st == 5) h = `<p class="m">Cada paixão vira uma perícia (POD+CAR) com bônus.</p>${[40, 30, 20].map((b, i) => `<div class="row"><b>+${b}</b><input data-ps="${i}" value="${esc(W.pass[i])}" placeholder="Ex: Lealdade à família" style="flex:1"></div>`).join("")}`;
-      $("#main").innerHTML = `<h2>VAMOS CRIAR SEU PERSONAGEM?</h2><p class="m">${["1. Dados", "2. Características", "3. Cultura", "4. Profissão", "5. Perícias", "6. Paixões"].map((n, i) => i == st ? `<b style="color:#ff4a55">${n}</b>` : n).join(" › ")}</p><div class="pn">${h}</div><div class="err" id="wm"></div><div class="row"><button class="g" id="wb" ${st ? "" : "disabled"}>← Voltar</button><button id="wn">${st == 5 ? "Concluir" : "Avançar →"}</button><button class="g" id="wx">Sair</button><button class="g" id="wd">🗑 Excluir ficha</button></div>`;
+      $("#main").innerHTML = `<div class="wz"><h2>Criar personagem</h2><div class="steps">${["Dados", "Características", "Cultura", "Profissão", "Perícias", "Paixões"].map((n, i) => `<span class="${i == st ? "on" : i < st ? "ok" : ""}"><i>${i + 1}</i>${n}</span>`).join("")}</div><div class="pn">${h}</div><div class="err" id="wm"></div><div class="row"><button class="g" id="wb" ${st ? "" : "disabled"}>← Voltar</button><button id="wn">${st == 5 ? "Concluir" : "Avançar →"}</button><span style="flex:1"></span><button class="g" id="wx">Sair</button><button class="g" id="wd">🗑 Excluir ficha</button></div></div>`;
       const upd = () => { const r = $("#rem"); if (!r) return;
         if (st == 1) r.innerHTML = W.free ? `Restante: <b>${80 - sum(W.att)}</b>` : pool() ? `Valores restantes: <b>${remP().join(", ") || "Distribuídos!"}</b>` : "Escolha um pacote.";
         if (st == 2) r.innerHTML = `Restante: <b>${100 - sum(W.cp)}</b>`;
-        if (st == 4) { r.innerHTML = `Restante: <b>${200 - s2()}</b>`; document.querySelectorAll("[data-pp]").forEach(e => { const x = [...sk(), {k: "__e", a: "FOR", b: "DES"}].find(y => y.k == e.dataset.pp); e.textContent = ((+W.att[x.a] || 0) + (+W.att[x.b] || 0) + (W.p2[x.k] || 0) + (W.cp[x.k] || 0)) + "%"; }); } };
+        if (st == 3) r.innerHTML = `Pontos restantes: <b>${100 - s1()}</b>`;
+        if (st == 4) { r.innerHTML = `Restante: <b>${200 - s2()}</b>`; document.querySelectorAll("[data-pp]").forEach(e => { const x = [...sk(), {k: "__e", a: "FOR", b: "DES"}].find(y => y.k == e.dataset.pp); e.textContent = ((+W.att[x.a] || 0) + (+W.att[x.b] || 0) + (W.p2[x.k] || 0) + (W.cp[x.k] || 0) + (W.p1[x.k] || 0)) + "%"; }); } };
       const on = (q, f) => document.querySelectorAll(q).forEach(f);
       on("[data-w]", e => e.oninput = () => W[e.dataset.w] = e.value);
       on("[data-cl]", b => b.onclick = () => { W.classe = b.dataset.cl; show(); });
@@ -272,11 +287,15 @@ async function sheetView(id) {
       on("[data-sp]", e => e.oninput = () => { W.spec[e.dataset.sp] = e.value; });
       on("[data-cp]", e => e.oninput = () => { W.cp[e.dataset.cp] = +e.value; upd(); });
       on("[data-p2]", e => e.oninput = () => { W.p2[e.dataset.p2] = +e.value; upd(); });
-      on("[data-pfo]", e => e.onchange = () => W.pf[e.dataset.pfo].on = e.checked);
-      on("[data-pfn]", e => e.oninput = () => W.pf[e.dataset.pfn].n = e.value);
-      on("[data-pfa]", e => e.onchange = () => W.pf[e.dataset.pfa].a = e.value);
-      on("[data-pfb]", e => e.onchange = () => W.pf[e.dataset.pfb].b = e.value);
-      on("[data-sd]", e => e.onchange = () => W.sd[e.dataset.sd] = e.value);
+      const refresh = () => { $("#pl").innerHTML = plist(); document.querySelectorAll("#pl [data-p1]").forEach(e => e.oninput = () => { W.p1[e.dataset.p1] = +e.value; upd(); }); upd(); };
+      on("[data-pfo]", e => e.onchange = () => { W.pf[e.dataset.pfo].on = e.checked; refresh(); });
+      on("[data-pfn]", e => e.oninput = () => { W.pf[e.dataset.pfn].n = e.value; refresh(); });
+      on("[data-pfa]", e => e.onchange = () => { W.pf[e.dataset.pfa].a = e.value; refresh(); });
+      on("[data-pfb]", e => e.onchange = () => { W.pf[e.dataset.pfb].b = e.value; refresh(); });
+      on("[data-sdn]", e => e.oninput = () => { W.sd[e.dataset.sdn].n = e.value; upd(); });
+      on("[data-sda]", e => e.onchange = () => W.sd[e.dataset.sda].a = e.value);
+      on("[data-sdb]", e => e.onchange = () => W.sd[e.dataset.sdb].b = e.value);
+      on("[data-p1]", e => e.oninput = () => { W.p1[e.dataset.p1] = +e.value; upd(); });
       on("[data-ps]", e => e.oninput = () => { W.pass[e.dataset.ps] = e.value; });
       $("#wb").onclick = () => { W.step--; show(); };
       $("#wx").onclick = () => { openId = null; render(); }; $("#wd").onclick = delSheet;
@@ -286,7 +305,7 @@ async function sheetView(id) {
       Object.assign(s, {nome: W.nome, idade: W.idade, genero: W.genero, peso: W.peso, terra: W.terra, classe: W.classe, cultura: W.cult, prof: W.prof});
       s.att = Object.fromEntries(Object.entries(W.att).map(([k, v]) => [k, +v])); s.altura = (1.4 + 0.03 * s.att.TAM).toFixed(2).replace(".", ",") + "m";
       s.bn = {}; s.cs = [];
-      sk().forEach(x => { const v = (W.cp[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
+      sk().forEach(x => { const v = (W.cp[x.k] || 0) + (W.p1[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
       s.es = [{n: W.estilo, a: "FOR", b: "DES", x: W.p2.__e || 0}];
       s.ps = W.pass.map((n, i) => ({n, a: "POD", b: "CAR", x: [40, 30, 20][i]}));
       s.nivel = 1; s.hp = {}; s.criada = true; W = null; draw(); save(); };
