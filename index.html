@@ -272,8 +272,8 @@ async function sheetView(id) {
   const paint = () => { const o = calc(s);
     document.querySelectorAll("[data-p]").forEach(e => e.textContent = pct(e.dataset.a, e.dataset.b, get(s, e.dataset.p)) + "%");
     document.querySelectorAll("[data-o]").forEach(e => { const k = e.dataset.o; e.textContent = k.startsWith("att.") ? s.att[k.slice(4)] ?? 10 : k.startsWith("hm.") ? o.hm[k.slice(3)] : o[k] ?? ""; });
-    document.querySelectorAll("[data-bp]").forEach(e => { const k = e.dataset.bp, i = e.querySelector("input"), m = o.hm[k]; if (s.hp[k] == null) i.value = m; const v = +i.value; e.className = "bp " + (v <= 0 ? "d" : v < m ? "w" : ""); });
-    const vi = document.querySelector('[data-i="vit"]'); if (vi && s.vit == null) vi.value = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
+    document.querySelectorAll("[data-bp]").forEach(e => { const k = e.dataset.bp, i = e.querySelector("input"), m = o.hm[k]; if (document.activeElement !== i) i.value = s.hp[k] ?? m; const v = +(s.hp[k] ?? m); e.className = "bp " + (v <= 0 ? "d" : v < m ? "w" : ""); });
+    const vi = document.querySelector('[data-i="vit"]'); if (vi && document.activeElement !== vi) vi.value = s.vit ?? PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0);
     const f = $("#fad"); if (f) f.value = s.fad;
   };
   const draw = () => {
