@@ -50,6 +50,28 @@ textarea{resize:none;overflow:hidden;min-height:60px}.pw{border-left:3px solid v
 .bp .ar{color:#4aa3ff;font-size:10px;margin-top:4px}.bp .ar input{width:34px;font-size:13px;color:#4aa3ff;border:1px solid #1e4a80;border-radius:6px;padding:1px}
 .chip{background:var(--p2);border:1px solid #333}.chip.on{background:var(--r)}
 .wg{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wg label{display:block;font-size:11px;color:#b6f;text-transform:uppercase;margin-bottom:3px}.wg input:not([type=checkbox]),.wg select{width:100%}
+
+:root{--bg:#070707;--p:#121212;--p2:#1c1c1c;--r:#d3202c;--r2:#ff3b47;--t:#f4f4f4;--m:#8f8f8f;--line:#2a2a2a}
+body{background:radial-gradient(1100px 420px at 50% -160px,#3a080c 0,transparent 70%),#070707}
+h2{font-size:24px;letter-spacing:2px;text-transform:uppercase}h3{font-size:12px;letter-spacing:2px;text-transform:uppercase;border-left:3px solid var(--r);padding-left:9px;margin-bottom:10px}
+nav{position:sticky;top:0;z-index:5;background:linear-gradient(#171717,#0b0b0b);border-bottom:1px solid var(--line);box-shadow:0 4px 24px #d3202c30}
+nav button{background:none;box-shadow:none;text-transform:uppercase;letter-spacing:1px;font-size:12px}nav button.on{color:#fff;border-bottom:2px solid var(--r2)}
+nav #ms.on{background:linear-gradient(#e0252f,#a31820)}nav button.g{border:1px solid var(--line)}
+button{background:linear-gradient(#e0252f,#a31820);box-shadow:0 2px 10px #d3202c40;transition:.15s}button:hover{filter:brightness(1.18);transform:translateY(-1px)}
+button.g,.chip{background:#1c1c1c;border:1px solid #333;box-shadow:none}button.g:hover{border-color:var(--r2)}.chip.on{background:linear-gradient(#e0252f,#a31820);border-color:var(--r)}
+button:disabled{opacity:.35;pointer-events:none}
+input,select,textarea{background:#181818;border:1px solid #2f2f2f}input:focus,select:focus,textarea:focus{outline:0;border-color:var(--r2);box-shadow:0 0 0 3px #d3202c40}
+.box{background:linear-gradient(#171717,#0e0e0e);border:1px solid var(--line);border-top:3px solid var(--r);box-shadow:0 10px 50px #d3202c30}.box h2{text-align:center;color:#fff}
+.pn,.card,.st{border:1px solid var(--line);background:linear-gradient(#161616,#0f0f0f)}.pn{box-shadow:0 4px 18px #0008}
+.card{transition:.2s}.card.click:hover{transform:translateY(-3px);box-shadow:0 8px 26px #d3202c40}.card b{letter-spacing:1px}
+.xdel{position:absolute;top:6px;right:6px;padding:3px 7px;background:#000b}
+.sk{background:#181818;border:1px solid var(--line)}.sk .pc{background:#2c2c2c;color:#fff;border:1px solid #3a3a3a}
+.der div{background:#181818;border:1px solid var(--line)}.der b{color:#fff;text-shadow:0 0 12px var(--r)}
+.bp{background:#1b1b1b;color:#eee;border:1px solid #333}.bp.w{background:#2c1a1a;color:#ff9a9a;border-color:#6a2a2a}.bp.d{background:#4a0d12;color:#ff4a55;border-color:var(--r)}
+.wg label{color:#ff4a55}.sub button{background:#1c1c1c;border:1px solid #333}.sub button.on{background:linear-gradient(#e0252f,#a31820)}
+.stage{border:2px solid var(--r);box-shadow:0 0 30px #d3202c40}.bar{background:#2a0a0c}.bar i{background:linear-gradient(90deg,#a31820,#ff3b47)}
+.top .ph{border:1px solid var(--line)}.prof input{color:#fff}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:6px}::-webkit-scrollbar-track{background:#0a0a0a}
 </style>
 </head>
 <body>
@@ -65,7 +87,7 @@ const FIREBASE_CONFIG = {
   appId: "1:761376051892:web:a6d94949c3857bf65a3de1"
 };
 /* ===== REGRAS DO SISTEMA (Mythras) — ajuste aqui ===== */
-const ATTRS = [["FOR","Força","#ff3b3b"],["CON","Constituição","#ff9f2e"],["TAM","Tamanho","#7ee8d0"],["DES","Destreza","#8fe34a"],["INT","Inteligência","#3aa0ff"],["POD","Poder","#b43cff"],["CAR","Carisma","#ff3c9a"]];
+const ATTRS = [["FOR","Força","#ff3b47"],["CON","Constituição","#e8e8e8"],["TAM","Tamanho","#a8a8a8"],["DES","Destreza","#ff6b74"],["INT","Inteligência","#ffffff"],["POD","Poder","#d3202c"],["CAR","Carisma","#c4c4c4"]];
 const PRESETS = {"Padrão":[14,13,12,11,11,10,9],"Balanceada":[12,12,12,12,11,11,10],"Especializada":[16,15,13,10,10,8,8]};
 const BASIC = [["Atletismo","FOR","DES"],["Condução","DES","POD"],["Desarmado","FOR","DES"],["Dissimulação","INT","CAR"],["Estilo de Combate","FOR","DES"],["Evasão","DES","DES"],["Vontade","POD","POD"],["Furtividade","DES","INT"],["Influência","CAR","CAR"],["Intuição","INT","POD"],["Língua Nativa","INT","CAR"],["Malandragem","POD","CAR"],["Musculatura","FOR","TAM"],["Ocultação","DES","POD"],["Percepção","INT","POD"],["Tolerância","CON","CON"],["Pesquisa","INT","INT"],["Primeiros Socorros","INT","DES"]];
 const RESIST = ["Evasão","Vontade","Musculatura","Tolerância"];
@@ -136,8 +158,10 @@ const cardHTML = (c, click) => `<div class="card ${click ? "click" : ""}" data-i
 /* ---------- FICHAS ---------- */
 function fichasView() {
   if (openId) return sheetView(openId);
-  $("#main").innerHTML = `<h2>Fichas</h2><button id="nf">+ Nova ficha</button><p class="m">Você só abre a sua própria ficha.${isAdmin ? " Modo mestre: você abre todas." : ""}</p><div class="grid">${cache.cards.map(c => cardHTML(c, isAdmin || (c.owner || c.id) === me.uid)).join("")}</div>`;
+  $("#main").innerHTML = `<h2>Fichas</h2><button id="nf">+ Nova ficha</button><p class="m">Você só abre a sua própria ficha.${isAdmin ? " Modo mestre: você abre todas." : ""}</p><div class="grid">${cache.cards.map(c => { const ok = isAdmin || (c.owner || c.id) === me.uid; return `<div style="position:relative">${cardHTML(c, ok)}${ok ? `<button class="g xdel" data-x="${c.id}" title="Excluir ficha">🗑</button>` : ""}</div>`; }).join("")}</div>`;
   document.querySelectorAll(".card.click").forEach(el => el.onclick = () => { openId = el.dataset.id; render(); });
+  document.querySelectorAll("[data-x]").forEach(b => b.onclick = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return;
+    await db.doc("fichas/" + b.dataset.x).delete(); await db.doc("cards/" + b.dataset.x).delete(); });
   $("#nf").onclick = async () => { const nid = me.uid + "_" + Date.now().toString(36);
     await db.doc("cards/" + nid).set({name: "Novo personagem", foto: "", pv: 0, pvMax: 0, owner: me.uid}); openId = nid; render(); };
 }
@@ -182,7 +206,7 @@ async function sheetView(id) {
     <div class="top"><div class="ph" id="ph" style="background-image:url('${foto}')" title="Clique para trocar a foto"></div>
     <div class="pn" style="margin:0"><input data-i="nome" value="${esc(s.nome)}" style="font-size:22px;font-weight:700;width:100%;background:none;border:0"><div class="prof">${prof.map(([k, n]) => `<div><label>${n}</label><input data-i="${k}" value="${esc(s[k])}"></div>`).join("")}</div>
     <div class="row"><label class="m">NÍVEL DE FADIGA</label><select id="fad" data-i="fad">${FADIGA.map((f, i) => `<option value="${i}">${f}</option>`).join("")}</select></div></div>
-    <div class="side"><div class="st" style="color:#fc3"><input type="number" data-i="nivel" value="${s.nivel ?? 1}"><small>Nível</small></div><div class="st" style="color:#b4f"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#6e4"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#4af"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
+    <div class="side"><div class="st" style="color:#fff"><input type="number" data-i="nivel" value="${s.nivel ?? 1}"><small>Nível</small></div><div class="st" style="color:#ff4a55"><input type="number" data-i="ppA" value="${s.ppA ?? o.pp}">/<span data-o="pp"></span><small>Pts. Poder</small></div><div class="st" style="color:#ddd"><input type="number" data-i="soA" value="${s.soA ?? o.sorte}">/<span data-o="sorte"></span><small>Sorte</small></div><div class="st" style="color:#fff"><input type="number" data-i="paA" value="${s.paA ?? o.pa}">/<span data-o="pa"></span><small>Pts. Ação</small></div></div></div>
     <input type="file" id="fi" accept="image/*" hidden>
     <div class="sub">${Object.keys(pages).map(p => `<button class="${p == sub ? "on" : ""}" data-s="${p}">${p}</button>`).join("")}</div><div id="pg">${pages[sub]()}</div>`;
     bind(); paint(); document.querySelectorAll("textarea").forEach(grow); };
@@ -207,29 +231,35 @@ async function sheetView(id) {
     await db.doc("fichas/" + id).delete(); await db.doc("cards/" + id).delete(); openId = null; render(); };
   let W = null;
   const wizard = () => {
-    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: ""};
+    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", pf: Array.from({length: 7}, () => ({on: false, n: "", a: "INT", b: "INT"})), sd: Array(7).fill("")};
     const cc = () => CULT[W.cult], pool = () => W.free ? null : PRESETS[W.pk], sum = o => Object.values(o).reduce((a, b) => a + (+b || 0), 0);
-    const sk = () => { const c = cc(); return c ? [...W.pro.map(n => { const p = c.pro.find(x => x[0] == n); return {k: n, n: p[3] ? `${n} (${W.spec[n] || "?"})` : n, a: p[1], b: p[2]}; }), ...c.rest.map(n => { const b = BASIC.find(x => x[0] == n); return {k: n, n, a: b[1], b: b[2]}; })] : []; };
+    const skc = () => { const c = cc(); return c ? [...W.pro.map(n => { const p = c.pro.find(x => x[0] == n); return {k: n, n: p[3] ? `${n} (${W.spec[n] || "?"})` : n, a: p[1], b: p[2]}; }), ...c.rest.map(n => { const b = BASIC.find(x => x[0] == n); return {k: n, n, a: b[1], b: b[2]}; })] : []; };
+    const sk = () => { const l = skc(), has = k => l.some(x => x.k == k);
+      W.pf.forEach((x, i) => { if (x.on && x.n.trim()) l.push({k: "pf" + i, n: x.n.trim(), a: x.a, b: x.b}); });
+      W.sd.forEach(n => { const b = n && BASIC.find(x => x[0] == n); if (b && !has(n)) l.push({k: n, n, a: b[1], b: b[2]}); });
+      return l; };
+    const s2 = () => [...sk().map(x => x.k), "__e"].reduce((a, k) => a + (+W.p2[k] || 0), 0);
     const remP = () => { const r = [...pool()]; Object.values(W.att).filter(v => v).map(Number).forEach(v => { const i = r.indexOf(v); i >= 0 ? r.splice(i, 1) : r.push("!"); }); return r; };
     const check = () => { const st = W.step, a = W.att;
       if (st == 0) return W.nome && W.idade && W.classe ? "" : "Preencha nome, idade e classe social.";
       if (st == 1) return W.free ? (sum(a) == 80 && ATTRS.every(([k]) => a[k] >= 3 && a[k] <= 18) && a.INT >= 8 && a.TAM >= 8 ? "" : "Some exatamente 80 pontos (3 a 18 cada; INT e TAM mín. 8).") : (pool() && ATTRS.every(([k]) => a[k]) && !remP().length ? "" : "Distribua todos os valores do pacote.");
-      if (st == 2) return !W.cult ? "Escolha a cultura." : W.pro.length < 3 ? "Marque 3 perícias profissionais." : cc().pro.some(p => p[3] && W.pro.includes(p[0]) && !(W.spec[p[0]] || "").trim()) ? "Diga qual Conhecimento/Idioma." : sk().some(x => (W.cp[x.k] || 0) > 15) ? "Máximo 15 por perícia." : sum(W.cp) != 100 ? "Distribua exatamente 100 pontos." : "";
-      if (st == 3) return W.prof?.trim() && W.estilo?.trim() ? "" : "Preencha profissão e estilo de combate.";
-      if (st == 4) return sum(W.p2) == 200 ? "" : "Distribua exatamente 200 pontos.";
+      if (st == 2) return !W.cult ? "Escolha a cultura." : W.pro.length < 3 ? "Marque 3 perícias profissionais." : cc().pro.some(p => p[3] && W.pro.includes(p[0]) && !(W.spec[p[0]] || "").trim()) ? "Diga qual Conhecimento/Idioma." : skc().some(x => (W.cp[x.k] || 0) > 15) ? "Máximo 15 por perícia." : sum(W.cp) != 100 ? "Distribua exatamente 100 pontos." : "";
+      if (st == 3) return !(W.prof?.trim() && W.estilo?.trim()) ? "Preencha profissão e estilo de combate." : W.pf.some(x => x.on && !x.n.trim()) ? "Dê nome às perícias marcadas." : "";
+      if (st == 4) return s2() == 200 ? "" : "Distribua exatamente 200 pontos.";
       return W.pass.every(x => x.trim()) ? "" : "Escreva as 3 paixões."; };
     const show = () => { const st = W.step; let h = "";
       if (st == 0) h = `<div class="wg"><div><label>Nome</label><input data-w="nome" value="${esc(W.nome)}"></div><div><label>Idade</label><input type="number" data-w="idade" value="${W.idade ?? ""}"></div><div><label>Gênero</label><select data-w="genero">${["Masculino", "Feminino", "Outro"].map(g => `<option ${g == W.genero ? "selected" : ""}>${g}</option>`).join("")}</select></div><div><label>Peso (kg)</label><input data-w="peso" value="${esc(W.peso)}" placeholder="Ex: 75kg"></div><div style="grid-column:1/-1"><label>Terra natal</label><input data-w="terra" value="${esc(W.terra)}" placeholder="Ex: Gemini City, Japão..."></div></div><h3>Classe social</h3><div class="row">${CLS.map(x => `<button class="chip ${x == W.classe ? "on" : ""}" data-cl="${x}">${x}</button>`).join("")}</div>`;
       if (st == 1) h = `<label class="row"><input type="checkbox" id="fl" ${W.free ? "checked" : ""}> Distribuição livre (80 pontos; mín. 8 INT e TAM)</label>${W.free ? "" : `<div class="row"><b>Pacote base</b><select id="pk"><option value="">-- Escolha --</option>${Object.entries(PRESETS).map(([k, v]) => `<option value="${k}" ${k == W.pk ? "selected" : ""}>${k} (${v.join(", ")})</option>`).join("")}</select><button class="g" id="rnd">🎲 Aleatório</button></div>`}<p id="rem"></p><div class="wg">${ATTRS.map(([k, n]) => `<div><label>${n} (${k})</label>${W.free ? `<input type="number" min="3" max="18" data-wa="${k}" value="${W.att[k] ?? ""}">` : `<select data-wa="${k}"><option value="">—</option>${[...new Set(pool() || [])].map(v => `<option ${W.att[k] == v ? "selected" : ""}>${v}</option>`).join("")}</select>`}</div>`).join("")}</div>`;
-      if (st == 2) { const c = cc(); h = `<div class="row">${Object.keys(CULT).map(x => `<button class="chip ${x == W.cult ? "on" : ""}" data-cu="${x}">${x}</button>`).join("")}</div>` + (c ? `<h3>Perícias profissionais (marque 3)</h3><div class="wg">${c.pro.map(p => `<div><label><input type="checkbox" data-pr="${p[0]}" ${W.pro.includes(p[0]) ? "checked" : ""} ${!W.pro.includes(p[0]) && W.pro.length >= 3 ? "disabled" : ""}> ${p[0]}</label>${p[3] && W.pro.includes(p[0]) ? `<input data-sp="${p[0]}" value="${esc(W.spec[p[0]])}" placeholder="Qual?">` : ""}</div>`).join("")}</div>` + (W.pro.length == 3 ? `<h3>Distribua 100 pontos (0 a 15 cada)</h3><p id="rem"></p><div class="wg">${sk().map(x => `<div><label>${esc(x.n)} (${x.a}+${x.b})</label><input type="number" min="0" max="15" data-cp="${x.k}" value="${W.cp[x.k] ?? 0}"></div>`).join("")}</div>` : "") : ""); }
-      if (st == 3) h = `<div class="wg"><div><label>Profissão</label><input data-w="prof" value="${esc(W.prof)}"></div><div><label>Estilo de combate (perícia FOR+DES)</label><input data-w="estilo" value="${esc(W.estilo)}" placeholder="Ex: Brigão de Bar"></div></div>`;
+      if (st == 2) { const c = cc(); h = `<div class="row">${Object.keys(CULT).map(x => `<button class="chip ${x == W.cult ? "on" : ""}" data-cu="${x}">${x}</button>`).join("")}</div>` + (c ? `<h3>Perícias profissionais (marque 3)</h3><div class="wg">${c.pro.map(p => `<div><label><input type="checkbox" data-pr="${p[0]}" ${W.pro.includes(p[0]) ? "checked" : ""} ${!W.pro.includes(p[0]) && W.pro.length >= 3 ? "disabled" : ""}> ${p[0]}</label>${p[3] && W.pro.includes(p[0]) ? `<input data-sp="${p[0]}" value="${esc(W.spec[p[0]])}" placeholder="Qual?">` : ""}</div>`).join("")}</div>` + (W.pro.length == 3 ? `<h3>Distribua 100 pontos (0 a 15 cada)</h3><p id="rem"></p><div class="wg">${skc().map(x => `<div><label>${esc(x.n)} (${x.a}+${x.b})</label><input type="number" min="0" max="15" data-cp="${x.k}" value="${W.cp[x.k] ?? 0}"></div>`).join("")}</div>` : "") : ""); }
+      if (st == 3) { const at = v => ATTRS.map(([k]) => `<option ${k == v ? "selected" : ""}>${k}</option>`).join("");
+        h = `<div class="wg"><div><label>Profissão</label><input data-w="prof" value="${esc(W.prof)}"></div><div><label>Estilo de combate (perícia FOR+DES)</label><input data-w="estilo" value="${esc(W.estilo)}" placeholder="Ex: Brigão de Bar"></div></div><h3>Perícias profissionais (marque e crie até 7)</h3>${W.pf.map((x, i) => `<div class="row"><input type="checkbox" data-pfo="${i}" ${x.on ? "checked" : ""}><input data-pfn="${i}" value="${esc(x.n)}" placeholder="Nome da perícia ${i + 1}" style="flex:1"><select data-pfa="${i}">${at(x.a)}</select><select data-pfb="${i}">${at(x.b)}</select></div>`).join("")}<h3>Perícias padrão (escolha até 7)</h3><div class="wg">${W.sd.map((v, i) => `<div><select data-sd="${i}"><option value="">—</option>${BASIC.map(b => `<option ${b[0] == v ? "selected" : ""}>${b[0]}</option>`).join("")}</select></div>`).join("")}</div>`; }
       if (st == 4) h = `<h3>Distribua 200 pontos entre as perícias do seu caminho</h3><p id="rem"></p><div class="wg">${[...sk(), {k: "__e", n: W.estilo + " (estilo)", a: "FOR", b: "DES"}].map(x => `<div><label>${esc(x.n)} <span data-pp="${x.k}"></span></label><input type="number" min="0" data-p2="${x.k}" value="${W.p2[x.k] ?? 0}"></div>`).join("")}</div>`;
       if (st == 5) h = `<p class="m">Cada paixão vira uma perícia (POD+CAR) com bônus.</p>${[40, 30, 20].map((b, i) => `<div class="row"><b>+${b}</b><input data-ps="${i}" value="${esc(W.pass[i])}" placeholder="Ex: Lealdade à família" style="flex:1"></div>`).join("")}`;
-      $("#main").innerHTML = `<h2>VAMOS CRIAR SEU PERSONAGEM?</h2><p class="m">${["1. Dados", "2. Características", "3. Cultura", "4. Profissão", "5. Perícias", "6. Paixões"].map((n, i) => i == st ? `<b style="color:#c8f">${n}</b>` : n).join(" › ")}</p><div class="pn">${h}</div><div class="err" id="wm"></div><div class="row"><button class="g" id="wb" ${st ? "" : "disabled"}>← Voltar</button><button id="wn">${st == 5 ? "Concluir" : "Avançar →"}</button><button class="g" id="wx">Sair</button><button class="g" id="wd">🗑 Excluir ficha</button></div>`;
+      $("#main").innerHTML = `<h2>VAMOS CRIAR SEU PERSONAGEM?</h2><p class="m">${["1. Dados", "2. Características", "3. Cultura", "4. Profissão", "5. Perícias", "6. Paixões"].map((n, i) => i == st ? `<b style="color:#ff4a55">${n}</b>` : n).join(" › ")}</p><div class="pn">${h}</div><div class="err" id="wm"></div><div class="row"><button class="g" id="wb" ${st ? "" : "disabled"}>← Voltar</button><button id="wn">${st == 5 ? "Concluir" : "Avançar →"}</button><button class="g" id="wx">Sair</button><button class="g" id="wd">🗑 Excluir ficha</button></div>`;
       const upd = () => { const r = $("#rem"); if (!r) return;
         if (st == 1) r.innerHTML = W.free ? `Restante: <b>${80 - sum(W.att)}</b>` : pool() ? `Valores restantes: <b>${remP().join(", ") || "Distribuídos!"}</b>` : "Escolha um pacote.";
         if (st == 2) r.innerHTML = `Restante: <b>${100 - sum(W.cp)}</b>`;
-        if (st == 4) { r.innerHTML = `Restante: <b>${200 - sum(W.p2)}</b>`; document.querySelectorAll("[data-pp]").forEach(e => { const x = [...sk(), {k: "__e", a: "FOR", b: "DES"}].find(y => y.k == e.dataset.pp); e.textContent = ((+W.att[x.a] || 0) + (+W.att[x.b] || 0) + (W.p2[x.k] || 0) + (W.cp[x.k] || 0)) + "%"; }); } };
+        if (st == 4) { r.innerHTML = `Restante: <b>${200 - s2()}</b>`; document.querySelectorAll("[data-pp]").forEach(e => { const x = [...sk(), {k: "__e", a: "FOR", b: "DES"}].find(y => y.k == e.dataset.pp); e.textContent = ((+W.att[x.a] || 0) + (+W.att[x.b] || 0) + (W.p2[x.k] || 0) + (W.cp[x.k] || 0)) + "%"; }); } };
       const on = (q, f) => document.querySelectorAll(q).forEach(f);
       on("[data-w]", e => e.oninput = () => W[e.dataset.w] = e.value);
       on("[data-cl]", b => b.onclick = () => { W.classe = b.dataset.cl; show(); });
@@ -242,6 +272,11 @@ async function sheetView(id) {
       on("[data-sp]", e => e.oninput = () => { W.spec[e.dataset.sp] = e.value; });
       on("[data-cp]", e => e.oninput = () => { W.cp[e.dataset.cp] = +e.value; upd(); });
       on("[data-p2]", e => e.oninput = () => { W.p2[e.dataset.p2] = +e.value; upd(); });
+      on("[data-pfo]", e => e.onchange = () => W.pf[e.dataset.pfo].on = e.checked);
+      on("[data-pfn]", e => e.oninput = () => W.pf[e.dataset.pfn].n = e.value);
+      on("[data-pfa]", e => e.onchange = () => W.pf[e.dataset.pfa].a = e.value);
+      on("[data-pfb]", e => e.onchange = () => W.pf[e.dataset.pfb].b = e.value);
+      on("[data-sd]", e => e.onchange = () => W.sd[e.dataset.sd] = e.value);
       on("[data-ps]", e => e.oninput = () => { W.pass[e.dataset.ps] = e.value; });
       $("#wb").onclick = () => { W.step--; show(); };
       $("#wx").onclick = () => { openId = null; render(); }; $("#wd").onclick = delSheet;
