@@ -115,6 +115,14 @@ nav,main,#dice{position:relative;z-index:1}nav{position:sticky}
 .sctl #scb{display:grid;gap:10px;margin-top:10px}.chk{display:grid;gap:4px;max-height:160px;overflow:auto}.sctl input[type=file]{max-width:150px}
 nav{z-index:6}
 @media(min-width:1100px){body.dopen .stage.full{right:320px}}
+.ov{position:absolute;inset:0;pointer-events:none;z-index:3}.ov.night{background:rgba(5,8,35,.55)}
+.ov.cold{background:radial-gradient(ellipse at center,#8fc2ff18,#6fa8ff55)}
+.ov.alert{box-shadow:inset 0 0 140px 30px #d3202c;animation:pulse 1.6s infinite}@keyframes pulse{50%{opacity:.3}}
+.ov.fog{background:linear-gradient(90deg,transparent,#cfd4dc33,transparent),radial-gradient(ellipse at 30% 85%,#cfd4dc55,transparent 60%),radial-gradient(ellipse at 80% 75%,#cfd4dc44,transparent 55%);background-size:200% 100%,auto,auto;animation:fogm 40s linear infinite;filter:blur(8px)}
+@keyframes fogm{to{background-position:200% 0,0 0,0 0}}
+.fxc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.stage.flash::before{content:"";position:absolute;inset:0;background:#fff;opacity:.8;z-index:4;pointer-events:none}
+.fxg{display:flex;flex-wrap:wrap;gap:6px}.fxg button{padding:6px 10px;font-size:12px}.fxg .on{background:linear-gradient(#e0252f,#a31820);border-color:var(--r)}
 </style>
 </head>
 <body>
@@ -156,7 +164,7 @@ const calc = s => { const a = k => +s.att[k] || 0, hm = {};
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth(), db = firebase.firestore(), DOM = "@mesa.local";
 const $ = q => document.querySelector(q), app = $("#app");
-let me = null, isAdmin = false, tab = "fichas", subs = [], npcSub = null, cache = {cards: [], session: {}, npcs: []}, openId = null;
+let openNpc = null, me = null, isAdmin = false, tab = "fichas", subs = [], npcSub = null, cache = {cards: [], session: {}, npcs: []}, openId = null;
 const slug = n => n.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const get = (o, p) => p.split(".").reduce((x, k) => x?.[k], o);
@@ -177,6 +185,7 @@ let diceOpen = innerWidth > 1100;
 const setDice = o => { diceOpen = o; $("#dice")?.classList.toggle("open", o); document.body.classList.toggle("dopen", o); };
 const openDice = () => setDice(true);
 const rollDice = n => { const q = Math.max(1, Math.min(20, +$("#dq").value || 1)), mod = +$("#dm").value || 0, rolls = Array.from({length: q}, () => 1 + Math.floor(Math.random() * n)); pushRoll({kind: "dice", title: `${q}d${n}${mod ? (mod > 0 ? "+" : "") + mod : ""}`, rolls, mod, total: rolls.reduce((a, b) => a + b, 0) + mod}); };
+const npcIni = n => n.att ? calc({att: n.att}).ini : (n.ini || 0);
 const iniBase = async id => { try { const d = await db.doc("fichas/" + id).get(); return d.exists && d.data().att ? calc({att: d.data().att}).ini : 0; } catch (e) { return 0; } };
 const saveIni = o => db.doc("session/iniciativa").set(JSON.parse(JSON.stringify(o)));
 const addIni = arr => { const L = [...(cache.ini?.list || [])]; arr.forEach(x => { if (!L.some(y => y.id == x.id)) L.push(x); }); L.sort((a, b) => b.ini - a.ini); return saveIni({list: L, turno: 0}); };
@@ -189,11 +198,11 @@ const renderIni = () => { const el = $("#dini"); if (!el) return; const L = cach
   if (!isAdmin) return;
   $("#iadd").onclick = async () => { const [tp, id] = $("#isel").value.split(":"), v = $("#iv").value;
     const x = tp == "pc" ? cache.cards.find(c => c.id == id) : cache.npcs.find(n => n.id == id); if (!x) return;
-    const base = v !== "" ? +v : (tp == "pc" ? await iniBase(id) : x.ini || 0) + bonus();
+    const base = v !== "" ? +v : (tp == "pc" ? await iniBase(id) : npcIni(x)) + bonus();
     addIni([{id, nome: x.name || x.nome, ini: base, tipo: tp}]); };
   $("#ipc").onclick = async () => { const ids = cache.session?.ids?.length ? cache.session.ids : cache.cards.map(c => c.id), arr = [];
     for (const id of ids) { const c = cache.cards.find(y => y.id == id); if (c) arr.push({id, nome: c.name, ini: (await iniBase(id)) + bonus(), tipo: "pc"}); } addIni(arr); };
-  $("#inpc").onclick = () => addIni(cache.npcs.map(n => ({id: n.id, nome: n.nome, ini: (n.ini || 0) + bonus(), tipo: "npc"})));
+  $("#inpc").onclick = () => addIni(cache.npcs.map(n => ({id: n.id, nome: n.nome, ini: npcIni(n) + bonus(), tipo: "npc"})));
   $("#inext").onclick = () => L.length && saveIni({list: L, turno: (t + 1) % L.length});
   $("#iclr").onclick = () => confirm("Zerar a iniciativa?") && saveIni({list: [], turno: 0});
   document.querySelectorAll("[data-ie]").forEach(e => e.onchange = () => { const n = L.map(x => ({...x})); n[e.dataset.ie].ini = +e.value; n.sort((a, b) => b.ini - a.ini); saveIni({list: n, turno: t}); });
@@ -203,6 +212,40 @@ const initDice = () => {
   document.querySelectorAll("[data-d]").forEach(b => b.onclick = () => rollDice(+b.dataset.d));
   if ($("#dclr")) $("#dclr").onclick = async () => { if (!confirm("Limpar o histórico de rolagens?")) return; const s = await db.collection("rolls").limit(200).get(); await Promise.all(s.docs.map(d => d.ref.delete())); };
   renderLog(); };
+const newSheet = new Set();
+const FXS = [["rain", "🌧 Chuva"], ["storm", "⛈ Tempestade"], ["snow", "❄ Neve"], ["cold", "🥶 Frio"], ["fog", "🌫 Névoa"], ["night", "🌙 Noite"], ["embers", "🔥 Brasas"], ["alert", "🚨 Alerta"]];
+const SFX = [["trovao", "⚡ Trovão"], ["explosao", "💥 Explosão"], ["espadas", "⚔ Espadas"], ["sino", "🔔 Sino"]];
+const flash = () => { const s = $(".stage"); if (!s) return; s.classList.add("flash"); setTimeout(() => s.classList.remove("flash"), 120); setTimeout(() => s.classList.add("flash"), 220); setTimeout(() => s.classList.remove("flash"), 340); };
+const AU = {ctx: null, mute: false, loops: {}, timer: null, storm: false, last: undefined,
+  c() { if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; this.ctx = new C(); } if (this.ctx.state == "suspended") this.ctx.resume(); return this.ctx; },
+  noise(c) { const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = c.createBufferSource(); s.buffer = b; s.loop = true; return s; },
+  once(n) { if (this.mute) return; const c = this.c(); if (!c) return; const t = c.currentTime, g = c.createGain(); g.connect(c.destination);
+    const env = (v, d) => { g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + d); };
+    if (n == "trovao" || n == "explosao") { const th = n == "trovao", s = this.noise(c), f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(th ? 250 : 1200, t); f.frequency.exponentialRampToValueAtTime(40, t + (th ? 3.5 : 1.6)); s.connect(f); f.connect(g); env(th ? 1.2 : 1.6, th ? 3.5 : 1.6); s.start(t); s.stop(t + 3.6); if (th) flash(); }
+    if (n == "espadas") { const s = this.noise(c), f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 3000; s.connect(f); f.connect(g); env(.5, .25); s.start(t); s.stop(t + .3);
+      [1900, 2850, 4100].forEach(fr => { const o = c.createOscillator(), og = c.createGain(); o.type = "triangle"; o.frequency.value = fr; og.gain.setValueAtTime(.15, t); og.gain.exponentialRampToValueAtTime(.001, t + .9); o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + 1); }); }
+    if (n == "sino") [220, 440, 660, 1100].forEach((fr, i) => { const o = c.createOscillator(), og = c.createGain(); o.frequency.value = fr; og.gain.setValueAtTime(.25 / (i + 1), t); og.gain.exponentialRampToValueAtTime(.001, t + 4); o.connect(og); og.connect(c.destination); o.start(t); o.stop(t + 4.1); }); },
+  loop(n, on) {
+    if (on && !this.loops[n]) { const c = this.c(); if (!c) return; const g = c.createGain(); g.connect(c.destination); let stop;
+      if (n == "vento" || n == "chuva") { const s = this.noise(c), f = c.createBiquadFilter(), w = n == "vento"; f.type = w ? "bandpass" : "highpass"; f.frequency.value = w ? 500 : 1800; g.gain.value = w ? .18 : .12; s.connect(f); f.connect(g); s.start(); let lfo;
+        if (w) { lfo = c.createOscillator(); const lg = c.createGain(); lfo.frequency.value = .15; lg.gain.value = 250; lfo.connect(lg); lg.connect(f.frequency); lfo.start(); }
+        stop = () => { s.stop(); lfo?.stop(); g.disconnect(); }; }
+      else { const iv = setInterval(() => { const t = c.currentTime; [0, .22].forEach(d => { const o = c.createOscillator(), og = c.createGain(); o.frequency.value = 55; og.gain.setValueAtTime(.7, t + d); og.gain.exponentialRampToValueAtTime(.001, t + d + .18); o.connect(og); og.connect(c.destination); o.start(t + d); o.stop(t + d + .2); }); }, 900); stop = () => clearInterval(iv); }
+      this.loops[n] = stop; }
+    if (!on && this.loops[n]) { this.loops[n](); delete this.loops[n]; } },
+  sync(fx) { fx = fx || {}; const on = !this.mute;
+    this.loop("vento", on && !!(fx.cold || fx.snow || fx.storm)); this.loop("chuva", on && !!(fx.rain || fx.storm)); this.loop("coracao", on && !!fx.alert);
+    const st = on && !!fx.storm; if (st && !this.storm) { const go = () => { this.once("trovao"); this.timer = setTimeout(go, 6000 + Math.random() * 9000); }; this.timer = setTimeout(go, 3000 + Math.random() * 4000); } if (!st) clearTimeout(this.timer); this.storm = st; }};
+addEventListener("pointerdown", () => { if (AU.ctx && AU.ctx.state == "suspended") AU.ctx.resume(); });
+const runFx = cv => { const modes = cv.dataset.m.split(","), x = cv.getContext("2d"); cv.width = cv.clientWidth; cv.height = cv.clientHeight; const P = [];
+  const mk = m => m == "rain" ? {m, x: Math.random() * cv.width, y: Math.random() * cv.height, v: 14 + Math.random() * 10, l: 12 + Math.random() * 14} : m == "snow" ? {m, x: Math.random() * cv.width, y: Math.random() * cv.height, v: 1 + Math.random() * 2, r: 1.5 + Math.random() * 2.5, d: Math.random() * 6} : {m, x: Math.random() * cv.width, y: cv.height + Math.random() * 60, v: 1 + Math.random() * 2, r: 1 + Math.random() * 2, d: Math.random() * 6};
+  const cnt = {rain: modes.includes("storm") ? 260 : 170, snow: 140, embers: 70};
+  modes.filter(m => cnt[m]).forEach(m => { for (let i = 0; i < cnt[m]; i++) P.push(mk(m)); });
+  const loop = () => { if (!document.body.contains(cv)) return; x.clearRect(0, 0, cv.width, cv.height);
+    P.forEach(p => { if (p.m == "rain") { x.strokeStyle = "rgba(200,215,255,.45)"; x.lineWidth = 1.2; x.beginPath(); x.moveTo(p.x, p.y); x.lineTo(p.x - 3, p.y + p.l); x.stroke(); p.y += p.v; p.x -= 1.5; if (p.y > cv.height) { p.y = -20; p.x = Math.random() * cv.width + 20; } }
+      else if (p.m == "snow") { x.fillStyle = "rgba(255,255,255,.85)"; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 6.3); x.fill(); p.y += p.v; p.d += .02; p.x += Math.sin(p.d) * .7; if (p.y > cv.height) { p.y = -5; p.x = Math.random() * cv.width; } }
+      else { x.fillStyle = `rgba(255,${120 + Math.random() * 80 | 0},40,.8)`; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 6.3); x.fill(); p.y -= p.v; p.d += .03; p.x += Math.sin(p.d); if (p.y < -5) { p.y = cv.height + 5; p.x = Math.random() * cv.width; } } });
+    requestAnimationFrame(loop); }; loop(); };
 const grow = e => { e.style.height = "auto"; e.style.height = e.scrollHeight + "px"; };
 function loginView(msg = "") {
   document.body.classList.remove("dopen");
@@ -217,22 +260,23 @@ function loginView(msg = "") {
 }
 auth.onAuthStateChanged(u => {
   subs.forEach(f => f()); subs = []; npcSub?.(); npcSub = null; me = u; isAdmin = false;
-  if (!u) return loginView();
-  tab = "fichas"; openId = null;
+  if (!u) { AU.sync({}); return loginView(); }
+  tab = "fichas"; openId = null; AU.last = undefined;
   subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId) render(); }));
-  subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; if (tab === "sessao") render(); }));
+  subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; const sf = cache.session.sfx; if (AU.last === undefined) AU.last = sf?.id ?? 0; else if (sf && sf.id != AU.last) { AU.last = sf.id; AU.once(sf.n); } AU.sync(cache.session.fx); if (tab === "sessao") render(); }));
   subs.push(db.collection("rolls").orderBy("t", "desc").limit(40).onSnapshot(s => { cache.rolls = s.docs.map(d => ({id: d.id, ...d.data()})).reverse(); renderLog(); }, e => toast("Rolagens: " + e.code)));
   subs.push(db.doc("session/iniciativa").onSnapshot(s => { cache.ini = s.data() || {list: [], turno: 0}; renderIni(); }, e => toast("Iniciativa: " + e.code)));
   subs.push(db.doc("masters/" + u.uid).onSnapshot(s => { isAdmin = s.exists; npcSub?.(); npcSub = null;
-    if (isAdmin) npcSub = db.collection("npcs").onSnapshot(n => { cache.npcs = n.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs") render(); });
+    if (isAdmin) npcSub = db.collection("npcs").onSnapshot(n => { cache.npcs = n.docs.map(d => ({id: d.id, ...d.data()})); if (tab === "npcs" && !openNpc) render(); });
     else if (tab === "npcs") tab = "fichas";
-    openId = null; shell(); }, e => toast("Erro modo mestre: " + e.code)));
+    openId = null; openNpc = null; shell(); }, e => toast("Erro modo mestre: " + e.code)));
   shell();
 });
 function shell() {
-  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main><aside id="dice"><button id="dt" title="Dados">🎲</button><div class="dh"><b>DADOS</b>${isAdmin ? '<button class="g" id="dclr">Limpar</button>' : ""}</div><div class="dtabs"><button class="g on" data-dt="r">Rolagens</button><button class="g" data-dt="i">Iniciativa</button></div><div id="pr"><div id="dlog"></div><div class="dbar"><div class="dd">${[4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("")}</div><div class="dm"><label>Qtd</label><input id="dq" type="number" value="1" min="1" max="20"><label>Mod</label><input id="dm" type="number" value="0"></div><p class="m" style="margin:0;font-size:11px">Clique em uma perícia da ficha para rolar d100.</p></div></div><div id="pi" class="off"><div id="dini"></div></div></aside>`;
-  document.querySelectorAll("nav [data-t]").forEach(b => b.onclick = () => { tab = b.dataset.t; openId = null; render(); });
+  app.innerHTML = `<nav><button data-t="fichas">Fichas</button><button data-t="sessao">Sessão</button>${isAdmin ? '<button data-t="npcs">NPCs</button>' : ""}<span class="sp"></span><span class="m">${esc(me.email.split("@")[0])}</span><button class="g" id="snd" title="Som">${AU.mute ? "🔇" : "🔊"}</button><button id="ms" class="${isAdmin ? "on" : "g"}">👑 ${isAdmin ? "Sair do modo mestre" : "Modo mestre"}</button><button class="g" id="out">Sair</button></nav><main id="main"></main><aside id="dice"><button id="dt" title="Dados">🎲</button><div class="dh"><b>DADOS</b>${isAdmin ? '<button class="g" id="dclr">Limpar</button>' : ""}</div><div class="dtabs"><button class="g on" data-dt="r">Rolagens</button><button class="g" data-dt="i">Iniciativa</button></div><div id="pr"><div id="dlog"></div><div class="dbar"><div class="dd">${[4, 6, 8, 10, 12, 20, 100].map(n => `<button data-d="${n}">d${n}</button>`).join("")}</div><div class="dm"><label>Qtd</label><input id="dq" type="number" value="1" min="1" max="20"><label>Mod</label><input id="dm" type="number" value="0"></div><p class="m" style="margin:0;font-size:11px">Clique em uma perícia da ficha para rolar d100.</p></div></div><div id="pi" class="off"><div id="dini"></div></div></aside>`;
+  document.querySelectorAll("nav [data-t]").forEach(b => b.onclick = () => { tab = b.dataset.t; openId = null; openNpc = null; render(); });
   $("#out").onclick = () => auth.signOut();
+  $("#snd").onclick = () => { AU.mute = !AU.mute; $("#snd").textContent = AU.mute ? "🔇" : "🔊"; AU.c(); AU.sync(cache.session.fx); };
   initDice();
   $("#ms").onclick = async () => { try {
     if (isAdmin) await db.doc("masters/" + me.uid).delete();
@@ -253,18 +297,20 @@ function fichasView() {
   document.querySelectorAll("[data-x]").forEach(b => b.onclick = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return;
     await db.doc("fichas/" + b.dataset.x).delete(); await db.doc("cards/" + b.dataset.x).delete(); });
   $("#nf").onclick = async () => { const nid = me.uid + "_" + Date.now().toString(36);
-    await db.doc("cards/" + nid).set({name: "Novo personagem", foto: "", pv: 0, pvMax: 0, owner: me.uid}); openId = nid; render(); };
+    newSheet.add(nid); await db.doc("cards/" + nid).set({name: "Novo personagem", foto: "", pv: 0, pvMax: 0, owner: me.uid, wiz: true}); openId = nid; render(); };
 }
-async function sheetView(id) {
-  const snap = await db.doc("fichas/" + id).get(), card = cache.cards.find(c => c.id === id) || {name: ""};
+async function sheetView(id, coll = "fichas") {
+  const isN = coll == "npcs", snap = await db.doc(coll + "/" + id).get();
   const s = snap.exists ? snap.data() : {};
+  const card = isN ? {name: s.nome || "", foto: s.foto || "", owner: "mestre", wiz: s.wiz} : cache.cards.find(c => c.id === id) || {name: ""};
   s.nome ??= card.name; s.att ??= {}; s.bn ??= {}; s.hp ??= {}; s.cs ??= []; s.es ??= []; s.fad ??= 0; s.ppA ??= null; s.ps ??= []; s.arm ??= {}; s.nivel ??= 1; s.pod ??= s.poderes ? [{n: "Poderes", d: s.poderes}] : [];
   let foto = card.foto || "", sub = "Geral", t;
   let dirty = false;
   const flush = async () => { dirty = false; try {
       const o = calc(s), mx = Object.values(o.hm).reduce((a, b) => a + b, 0), cur0 = PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0), cur = Math.max(0, Math.min(mx, s.vit ?? cur0));
-      await db.doc("fichas/" + id).set(JSON.parse(JSON.stringify(s)));
-      await db.doc("cards/" + id).set({name: s.nome || card.name || "Sem nome", foto, pv: cur, pvMax: mx, owner: card.owner || id.split("_")[0]});
+      if (isN) { const o2 = JSON.parse(JSON.stringify({...s, foto, pv: cur, pvMax: mx})); delete o2.wiz; await db.doc("npcs/" + id).set(o2); }
+      else { await db.doc("fichas/" + id).set(JSON.parse(JSON.stringify(s)));
+        await db.doc("cards/" + id).set({name: s.nome || card.name || "Sem nome", foto, pv: cur, pvMax: mx, owner: card.owner || id.split("_")[0]}); }
       if ($("#st")) $("#st").textContent = "✔ salvo";
     } catch (e) { toast("Erro ao salvar: " + (e.code || e.message)); } };
   const save = () => { dirty = true; if ($("#st")) $("#st").textContent = "…"; clearTimeout(t); t = setTimeout(flush, 600); };
@@ -293,7 +339,7 @@ async function sheetView(id) {
     const f = $("#fad"); if (f) f.value = s.fad;
   };
   const draw = () => {
-    if (!s.criada && id.startsWith(me.uid)) return wizard();
+    if (!s.criada && (isN ? isAdmin : (card.owner || id.split("_")[0]) === me.uid) && (card.wiz || newSheet.has(id))) return wizard();
     s.att = Object.fromEntries(ATTRS.map(([k]) => [k, s.att[k] ?? 10]));
     const o = calc(s);
     $("#main").innerHTML = `<button class="g" id="bk">← Voltar</button> <span id="st" class="m"></span> <button class="g" id="del" style="float:right">🗑 Excluir ficha</button>
@@ -305,7 +351,7 @@ async function sheetView(id) {
     <div class="sub">${Object.keys(pages).map(p => `<button class="${p == sub ? "on" : ""}" data-s="${p}">${p}</button>`).join("")}</div><div id="pg">${pages[sub]()}</div>`;
     bind(); paint(); document.querySelectorAll("textarea").forEach(grow); };
   const bind = () => {
-    $("#bk").onclick = async () => { clearTimeout(t); if (dirty) await flush(); openId = null; render(); };
+    $("#bk").onclick = async () => { clearTimeout(t); if (dirty) await flush(); openId = null; openNpc = null; render(); };
     $("#del").onclick = delSheet;
     document.querySelectorAll("[data-vd]").forEach(b => b.onclick = () => { const o = calc(s), cur = s.vit ?? PARTS.reduce((a, [k]) => a + Math.min(s.hp[k] ?? o.hm[k], o.hm[k]), 0); s.vit = Math.max(0, Math.min(o.vitMax, cur + +b.dataset.vd)); document.querySelector('[data-i="vit"]').value = s.vit; save(); });
     document.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { sub = b.dataset.s; draw(); });
@@ -324,7 +370,7 @@ async function sheetView(id) {
   };
 
   const delSheet = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return; clearTimeout(t);
-    await db.doc("fichas/" + id).delete(); await db.doc("cards/" + id).delete(); openId = null; render(); };
+    if (isN) await db.doc("npcs/" + id).delete(); else { await db.doc("fichas/" + id).delete(); await db.doc("cards/" + id).delete(); } openId = null; openNpc = null; render(); };
   let W = null;
   const wizard = () => {
     W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", profn: "", ppro: [], p1: {}};
@@ -384,20 +430,24 @@ async function sheetView(id) {
       sk().forEach(x => { const v = (W.cp[x.k] || 0) + (W.p1[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
       s.es = [{n: W.estilo, a: "FOR", b: "DES", x: W.p2.__e || 0}];
       s.ps = W.pass.map((n, i) => ({n, a: "POD", b: "CAR", x: [40, 30, 20][i]}));
-      s.nivel = 1; s.hp = {}; s.criada = true; W = null; draw(); flush(); };
+      s.nivel = 1; s.hp = {}; s.criada = true; newSheet.delete(id); W = null; draw(); flush(); };
     show(); };
   draw();
 }
 
 /* ---------- SESSÃO ---------- */
 function sessaoView() {
-  const ss = cache.session, ids = ss.ids || [], pos = ss.pos || {}, size = ss.size || 38, pl = cache.cards.filter(c => ids.includes(c.id));
+  const ss = cache.session, ids = ss.ids || [], pos = ss.pos || {}, size = ss.size || 38, fx = ss.fx || {}, pl = cache.cards.filter(c => ids.includes(c.id));
   $("#main").innerHTML = `<div class="stage full" style="background-image:url('${ss.map || ""}')">${pl.map((c, i) => { const p = pos[c.id] || {x: (i + 1) / (pl.length + 1) * 100, y: 4};
-    return `<div class="fig" data-id="${c.id}" style="left:${p.x}%;bottom:${p.y}%">${c.foto ? `<img src="${c.foto}" style="height:${size}vh" draggable="false">` : `<div class="nof" style="height:${size}vh">👤</div>`}<span>${esc(c.name)}</span></div>`; }).join("")}${!ss.map && !isAdmin ? '<p class="m" style="position:absolute;top:80px;left:24px">Aguardando o mestre escolher o cenário…</p>' : ""}</div>
-  ${isAdmin ? `<div class="sctl"><button class="g" id="sct">⚙ Controles</button><div id="scb"><div class="row"><b>Cenário</b><input type="file" id="mp" accept="image/*"><button class="g" id="cm">Remover</button></div><div class="row"><b>Tamanho</b><input type="range" id="sz" min="15" max="80" value="${size}"></div><b>Personagens na cena</b><div class="chk">${cache.cards.map(c => `<label><input type="checkbox" data-p="${c.id}" ${ids.includes(c.id) ? "checked" : ""}> ${esc(c.name)}</label>`).join("")}</div><button class="g" id="rp">Reposicionar</button><p class="m" style="margin:0;font-size:12px">Arraste os personagens na cena. PNG sem fundo se mistura ao cenário.</p></div></div>` : ""}`;
+    return `<div class="fig" data-id="${c.id}" style="left:${p.x}%;bottom:${p.y}%">${c.foto ? `<img src="${c.foto}" style="height:${size}vh" draggable="false">` : `<div class="nof" style="height:${size}vh">👤</div>`}<span>${esc(c.name)}</span></div>`; }).join("")}${!ss.map && !isAdmin ? '<p class="m" style="position:absolute;top:80px;left:24px">Aguardando o mestre escolher o cenário…</p>' : ""}${fx.night ? '<div class="ov night"></div>' : ""}${fx.cold ? '<div class="ov cold"></div>' : ""}${fx.fog ? '<div class="ov fog"></div>' : ""}${fx.alert ? '<div class="ov alert"></div>' : ""}${fx.rain || fx.storm || fx.snow || fx.embers ? `<canvas class="fxc" data-m="${[fx.rain || fx.storm ? "rain" : "", fx.storm ? "storm" : "", fx.snow ? "snow" : "", fx.embers ? "embers" : ""].filter(Boolean).join(",")}"></canvas>` : ""}</div>
+  ${isAdmin ? `<div class="sctl"><button class="g" id="sct">⚙ Controles</button><div id="scb"><div class="row"><b>Cenário</b><input type="file" id="mp" accept="image/*"><button class="g" id="cm">Remover</button></div><div class="row"><b>Tamanho</b><input type="range" id="sz" min="15" max="80" value="${size}"></div><b>Efeitos</b><div class="fxg">${FXS.map(([k, n]) => `<button class="g ${fx[k] ? "on" : ""}" data-fx="${k}">${n}</button>`).join("")}</div><b>Sons</b><div class="fxg">${SFX.map(([k, n]) => `<button class="g" data-sfx="${k}">${n}</button>`).join("")}<button class="g" id="fxc">Limpar efeitos</button></div><b>Personagens na cena</b><div class="chk">${cache.cards.map(c => `<label><input type="checkbox" data-p="${c.id}" ${ids.includes(c.id) ? "checked" : ""}> ${esc(c.name)}</label>`).join("")}</div><button class="g" id="rp">Reposicionar</button><p class="m" style="margin:0;font-size:12px">Arraste os personagens na cena. PNG sem fundo se mistura ao cenário.</p></div></div>` : ""}`;
+  const cv = $(".fxc"); if (cv) runFx(cv);
   if (!isAdmin) return;
   const S = (o) => db.doc("session/current").set(o, {merge: true});
   $("#sct").onclick = () => $("#scb").classList.toggle("off");
+  document.querySelectorAll("[data-fx]").forEach(b => b.onclick = () => S({fx: {[b.dataset.fx]: !fx[b.dataset.fx]}}));
+  document.querySelectorAll("[data-sfx]").forEach(b => b.onclick = () => S({sfx: {n: b.dataset.sfx, id: Date.now()}}));
+  $("#fxc").onclick = () => S({fx: Object.fromEntries(FXS.map(([k]) => [k, false]))});
   $("#mp").onchange = async e => S({map: await img(e.target.files[0], 2000, .85, false, 950000)});
   $("#cm").onclick = () => S({map: ""});
   $("#sz").oninput = e => document.querySelectorAll(".fig img,.fig .nof").forEach(i => i.style.height = e.target.value + "vh");
@@ -412,11 +462,11 @@ function sessaoView() {
 
 /* ---------- NPCs (modo mestre) ---------- */
 function npcsView() {
-  $("#main").innerHTML = `<h2>NPCs <span class="m">(privado)</span></h2><button id="nn">+ Novo NPC</button>
-  ${cache.npcs.map(n => `<div class="pn" data-n="${n.id}"><div class="row"><input data-f="nome" value="${esc(n.nome)}" placeholder="Nome"> PV <input data-f="pv" type="number" style="width:80px" value="${n.pv ?? 10}"> Ini <input data-f="ini" type="number" style="width:80px" value="${n.ini ?? 0}"><button class="g" data-d="${n.id}">Excluir</button></div><textarea data-f="notas" placeholder="Atributos, perícias, ataques...">${esc(n.notas)}</textarea></div>`).join("")}`;
-  $("#nn").onclick = () => db.collection("npcs").add({nome: "Novo NPC", pv: 10, notas: ""});
-  document.querySelectorAll("[data-f]").forEach(e => e.onchange = () => db.doc("npcs/" + e.closest("[data-n]").dataset.n).update({[e.dataset.f]: e.type === "number" ? +e.value : e.value}));
-  document.querySelectorAll("[data-d]").forEach(e => e.onclick = () => confirm("Excluir?") && db.doc("npcs/" + e.dataset.d).delete());
+  if (openNpc) return sheetView(openNpc, "npcs");
+  $("#main").innerHTML = `<h2>NPCs <span class="m">(privado)</span></h2><button id="nn">+ Novo NPC</button><div class="grid" style="margin-top:16px">${cache.npcs.map(n => `<div style="position:relative">${cardHTML({id: n.id, name: n.nome || "Sem nome", foto: n.foto, pv: n.pv ?? 0, pvMax: n.pvMax ?? n.pv ?? 0}, true)}<button class="g xdel" data-x="${n.id}" title="Excluir NPC">🗑</button></div>`).join("")}</div>`;
+  $("#nn").onclick = async () => { const r = await db.collection("npcs").add({nome: "", foto: "", pv: 0, pvMax: 0, wiz: true}); newSheet.add(r.id); openNpc = r.id; render(); };
+  document.querySelectorAll(".card.click").forEach(el => el.onclick = () => { openNpc = el.dataset.id; render(); });
+  document.querySelectorAll("[data-x]").forEach(b => b.onclick = async () => { if (confirm("Excluir este NPC?")) await db.doc("npcs/" + b.dataset.x).delete(); });
 }
 </script>
 </body>
