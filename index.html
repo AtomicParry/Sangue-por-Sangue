@@ -233,9 +233,7 @@ const AU = {ctx: null, mute: false, loops: {}, timer: null, storm: false, last: 
       else { const iv = setInterval(() => { const t = c.currentTime; [0, .22].forEach(d => { const o = c.createOscillator(), og = c.createGain(); o.frequency.value = 55; og.gain.setValueAtTime(.7, t + d); og.gain.exponentialRampToValueAtTime(.001, t + d + .18); o.connect(og); og.connect(c.destination); o.start(t + d); o.stop(t + d + .2); }); }, 900); stop = () => clearInterval(iv); }
       this.loops[n] = stop; }
     if (!on && this.loops[n]) { this.loops[n](); delete this.loops[n]; } },
-  sync(fx) { fx = fx || {}; const on = !this.mute;
-    this.loop("vento", on && !!(fx.cold || fx.snow || fx.storm)); this.loop("chuva", on && !!(fx.rain || fx.storm)); this.loop("coracao", on && !!fx.alert);
-    const st = on && !!fx.storm; if (st && !this.storm) { const go = () => { this.once("trovao"); this.timer = setTimeout(go, 6000 + Math.random() * 9000); }; this.timer = setTimeout(go, 3000 + Math.random() * 4000); } if (!st) clearTimeout(this.timer); this.storm = st; }};
+  sync() { ["vento", "chuva", "coracao"].forEach(n => this.loop(n, false)); clearTimeout(this.timer); this.storm = false; }};
 addEventListener("pointerdown", () => { if (AU.ctx && AU.ctx.state == "suspended") AU.ctx.resume(); });
 const runFx = cv => { const modes = cv.dataset.m.split(","), x = cv.getContext("2d"); cv.width = cv.clientWidth; cv.height = cv.clientHeight; const P = [];
   const mk = m => m == "rain" ? {m, x: Math.random() * cv.width, y: Math.random() * cv.height, v: 14 + Math.random() * 10, l: 12 + Math.random() * 14} : m == "snow" ? {m, x: Math.random() * cv.width, y: Math.random() * cv.height, v: 1 + Math.random() * 2, r: 1.5 + Math.random() * 2.5, d: Math.random() * 6} : {m, x: Math.random() * cv.width, y: cv.height + Math.random() * 60, v: 1 + Math.random() * 2, r: 1 + Math.random() * 2, d: Math.random() * 6};
