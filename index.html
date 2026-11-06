@@ -149,9 +149,9 @@ const ALIAS = {"Força de Vontade": "Vontade"};
 const def = n => { n = ALIAS[n] || n; const b = BASIC.find(x => x[0] == n); if (b) return {k: n, n, a: b[1], b: b[2]}; const [a, c] = PSK[n].split("+"); return {k: n, n, a, b: c}; };
 const CLS = ["Miserável","Empobrecido","Classe Trabalhadora","Classe Média","Classe Alta","Burguesia"];
 const CULT = {
- Urbano:{pro:[["Arte","POD","CAR"],["Conhecimento","INT","INT",1],["Cultura","INT","INT"],["Idioma","INT","CAR",1],["Comércio","INT","CAR"],["Performance","CAR","DES"]],rest:["Dissimulação","Influência","Pesquisa","Vontade","Condução","Percepção","Malandragem"]},
+ Urbano:{pro:[["Arte","POD","CAR"],["Conhecimento","INT","INT",1],["Cultura","INT","INT"],["Idioma","INT","CAR",1],["Comércio","INT","CAR"],["Performance","CAR","DES"]],rest:["Dissimulação","Influência","Pesquisa","Vontade","Condução","Percepção","Malandragem","Evasão"]},
  Rural:{pro:[["Navegação","INT","POD"],["Conhecimento Animal","INT","INT"],["Sobrevivência","INT","CON"],["Montaria","DES","POD"],["Rastreamento","INT","CON"],["Etiqueta","CAR","INT"]],rest:["Musculatura","Tolerância","Percepção","Desarmado","Condução","Influência","Malandragem","Vontade"]},
- Arcaico:{pro:[["Navegação","INT","POD"],["Conhecimento Arcaico","INT","INT"],["Montaria","DES","POD"],["Ofício","DES","INT"],["Condução","DES","POD"],["Sobrevivência","INT","CON"]],rest:["Atletismo","Tolerância","Percepção","Intuição","Musculatura","Primeiros Socorros","Furtividade","Desarmado"]}};
+ Arcaico:{pro:[["Navegação","INT","POD"],["Conhecimento Arcaico","INT","INT"],["Montaria","DES","POD"],["Ofício","DES","INT"],["Condução","DES","POD"],["Sobrevivência","INT","CON"]],rest:["Atletismo","Tolerância","Percepção","Intuição","Musculatura","Primeiros Socorros","Furtividade","Desarmado","Evasão"]}};
 const FADIGA = ["Descansado","Ofegante","Cansado","Esgotado","Exausto","Debilitado","Incapacitado","Morto"];
 const PARTS = [["cab","Cabeça",[1,2,3,4,5,6,7,8]],["be","Braço Esq.",[1,1,2,3,4,5,6,7]],["pei","Peito",[3,4,5,6,7,8,9,10]],["bd","Braço Dir.",[1,1,2,3,4,5,6,7]],["pe","Perna Esq.",[1,2,3,4,5,6,7,8]],["abd","Abdômen",[2,3,4,5,6,7,8,9]],["pd","Perna Dir.",[1,2,3,4,5,6,7,8]]];
 const hpMax = (p, sum) => { const c = Math.max(0, Math.floor((sum - 1) / 5)); return c > 7 ? p[7] + c - 7 : p[c]; };
@@ -261,7 +261,7 @@ auth.onAuthStateChanged(u => {
   subs.forEach(f => f()); subs = []; npcSub?.(); npcSub = null; me = u; isAdmin = false;
   if (!u) { AU.sync({}); return loginView(); }
   tab = "fichas"; openId = null; AU.last = undefined;
-  subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId) render(); }));
+  subs.push(db.collection("cards").onSnapshot(s => { cache.cards = s.docs.map(d => ({id: d.id, ...d.data()})); if (!openId && !openNpc) render(); }));
   subs.push(db.doc("session/current").onSnapshot(s => { cache.session = s.data() || {}; const sf = cache.session.sfx; if (AU.last === undefined) AU.last = sf?.id ?? 0; else if (sf && sf.id != AU.last) { AU.last = sf.id; AU.once(sf.n); } AU.sync(cache.session.fx); if (tab === "sessao") render(); }));
   subs.push(db.collection("rolls").orderBy("t", "desc").limit(40).onSnapshot(s => { cache.rolls = s.docs.map(d => ({id: d.id, ...d.data()})).reverse(); renderLog(); }, e => toast("Rolagens: " + e.code)));
   subs.push(db.doc("session/iniciativa").onSnapshot(s => { cache.ini = s.data() || {list: [], turno: 0}; renderIni(); }, e => toast("Iniciativa: " + e.code)));
@@ -368,11 +368,13 @@ async function sheetView(id, coll = "fichas") {
     const rl = $("#rl"); if (rl) rl.onclick = () => { const r = 1 + Math.floor(Math.random() * 20), p = r <= 3 ? "Perna Dir." : r <= 6 ? "Perna Esq." : r <= 9 ? "Abdômen" : r <= 12 ? "Peito" : r <= 15 ? "Braço Dir." : r <= 18 ? "Braço Esq." : "Cabeça"; openDice(); pushRoll({kind: "dice", title: "Local: " + p, rolls: [r], mod: 0, total: r, who: s.nome || "?"}); };
   };
 
-  const delSheet = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return; clearTimeout(t);
+  const delSheet = async () => { if (!confirm("Excluir esta ficha? Não dá para desfazer.")) return; clearTimeout(t); try { localStorage.removeItem(wk); } catch (e) {}
     if (isN) await db.doc("npcs/" + id).delete(); else { await db.doc("fichas/" + id).delete(); await db.doc("cards/" + id).delete(); } openId = null; openNpc = null; render(); };
+  const wk = "wiz_" + me.uid + "_" + id, persist = () => { try { localStorage.setItem(wk, JSON.stringify(W)); } catch (e) {} };
+  const loadW = () => { try { return JSON.parse(localStorage.getItem(wk)); } catch (e) { return null; } };
   let W = null;
   const wizard = () => {
-    W ??= {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", profn: "", ppro: [], p1: {}};
+    W ??= loadW() ?? {step: 0, att: {}, pro: [], spec: {}, cp: {}, p2: {}, pass: ["", "", ""], genero: "Masculino", classe: "", nome: s.nome || "", free: false, pk: "", profn: "", ppro: [], p1: {}};
     const cc = () => CULT[W.cult], pool = () => W.free ? null : PRESETS[W.pk], sum = o => Object.values(o).reduce((a, b) => a + (+b || 0), 0);
     const skc = () => { const c = cc(); return c ? [...W.pro.map(n => { const p = c.pro.find(x => x[0] == n); return {k: n, n: p[3] ? `${n} (${W.spec[n] || "?"})` : n, a: p[1], b: p[2]}; }), ...c.rest.map(n => { const b = BASIC.find(x => x[0] == n); return {k: n, n, a: b[1], b: b[2]}; })] : []; };
     const nd = () => 7 - PROF[W.profn].b.length;
@@ -421,9 +423,10 @@ async function sheetView(id, coll = "fichas") {
       on("[data-p1]", e => e.oninput = () => { W.p1[e.dataset.p1] = +e.value; upd(); });
       on("[data-ps]", e => e.oninput = () => { W.pass[e.dataset.ps] = e.value; });
       $("#wb").onclick = () => { W.step--; show(); };
-      $("#wx").onclick = () => { openId = null; render(); }; $("#wd").onclick = delSheet;
+      $("#wx").onclick = async () => { const nm = (W.nome || "").trim(); if (nm) { try { await db.doc((isN ? "npcs/" : "cards/") + id).update(isN ? {nome: nm} : {name: nm}); } catch (e) {} } openId = null; openNpc = null; render(); }; $("#wd").onclick = delSheet;
       $("#wn").onclick = () => { const m = check(); if (m) return $("#wm").textContent = m; if (st < 5) { W.step++; show(); } else finish(); };
-      upd(); };
+      $("#main").oninput = $("#main").onchange = persist;
+      upd(); persist(); };
     const finish = () => {
       Object.assign(s, {nome: W.nome, idade: W.idade, genero: W.genero, peso: W.peso, terra: W.terra, classe: W.classe, cultura: W.cult, prof: W.profn});
       s.att = Object.fromEntries(Object.entries(W.att).map(([k, v]) => [k, +v])); s.altura = (1.4 + 0.03 * s.att.TAM).toFixed(2).replace(".", ",") + "m";
@@ -431,7 +434,7 @@ async function sheetView(id, coll = "fichas") {
       sk().filter(x => x.k != "__e").forEach(x => { const v = (W.cp[x.k] || 0) + (W.p1[x.k] || 0) + (W.p2[x.k] || 0); if (BASIC.some(b => b[0] == x.k)) s.bn[x.k] = v; else s.cs.push({n: x.n, a: x.a, b: x.b, x: v}); });
       s.es = [{n: W.estilo, a: "FOR", b: "DES", x: (W.p1.__e || 0) + (W.p2.__e || 0)}];
       s.ps = W.pass.map((n, i) => ({n, a: "POD", b: "CAR", x: [40, 30, 20][i]}));
-      s.nivel = 1; s.hp = {}; s.criada = true; newSheet.delete(id); W = null; draw(); flush(); };
+      s.nivel = 1; s.hp = {}; s.criada = true; newSheet.delete(id); try { localStorage.removeItem(wk); } catch (e) {} W = null; draw(); flush(); };
     show(); };
   draw();
 }
